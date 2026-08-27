@@ -1,0 +1,171 @@
+<?php
+
+namespace App\Helpers;
+
+use Illuminate\Database\Query\Builder;
+use Illuminate\Support\Collection;
+
+/**
+ * Class Pagination
+ *
+ * Handles data pagination and sorting for DataTables.
+ */
+class Pagination
+{
+    /**
+     * Get paginated data for DataTables.
+     *
+     * @param Builder $query The query builder instance.
+     * @param array $postData The request data from DataTables.
+     * @return array The paginated response.
+     */
+    public function getDataTable(Builder $query, array $postData): array
+    {
+        $response = [];
+        $result = $this->setDataTable($postData);
+        $total = $query->count();
+
+        $response['recordsTotal'] = $total ?? 0;
+
+        // Apply ordering if provided
+        if (!empty($result['orderByField'])) {
+            $query->orderBy($result['orderByField'], $result['orderBy']);
+        }
+
+        // Set pagination limits and offsets
+        $query->offset($result['offset'])->limit($result['limit']);
+        
+        $response['data'] = $query->get();
+        $response['recordsFiltered'] = $response['recordsTotal'];
+        $response['draw'] = $result['draw'];
+        return $response;
+    }
+
+    /**
+     * Set pagination and ordering data for DataTables.
+     *
+     * @param array $data The request data from DataTables.
+     * @return array Pagination and ordering configuration.
+     */
+    public function setDataTable(array $data): array
+    {
+        $paginationData = [
+            'draw' => $data['draw'] ?? 0,
+            'limit' => min($data['length'] ?? 20, 100),
+            'offset' => $data['start'] ?? 0,
+            'orderBy' => isset($data['order'][0]['dir']) && $data['order'][0]['dir'] === 'asc' ? 'ASC' : 'DESC',
+            'orderByField' => ''
+        ];
+
+        // Check if ordering column is provided and valid
+        if (
+            isset($data['order'][0]['column']) &&
+            $data['columns'][$data['order'][0]['column']]['orderable'] === 'true' &&
+            isset($data['columns'][$data['order'][0]['column']]['data'])
+        ) {
+            $paginationData['orderByField'] = $data['columns'][$data['order'][0]['column']]['data'];
+        }
+
+        return $paginationData;
+    }
+
+    /**
+     * Get paginated data with various pagination types.
+     *
+     * @param Builder $query The query builder instance.
+     * @param array $postData The request data.
+     * @param int $type The type of pagination (1: default, 2: load more, 3: scroll).
+     * @return array The paginated response.
+     */
+    public function getData(Builder $query, array $postData, int $type = 1): array
+    {
+        $response = [];
+        $response['limit'] = min((int)($postData['limit'] ?? 20), 100);
+
+        // Calculate total records only for type 1 pagination
+        if ($type === 1) {
+            $response['total'] = $query->count();
+        }
+
+        // Apply sorting if provided
+        if (!empty($postData['sort']['field'])) {
+            $query->orderBy($postData['sort']['field'], $postData['sort']['direction'] ?? 'desc');
+        }
+
+        // Set offset or page-based pagination
+        if (isset($postData['offset'])) {
+            $response['offset'] = (int)($postData['offset'] ?? 0);
+            $response['page'] = ($response['offset'] / $response['limit']) + 1;
+        } else {
+            $response['page'] = (int)($postData['page'] ?? 1);
+            $response['offset'] = ($response['page'] - 1) * $response['limit'];
+        }
+        // Apply the offset
+        $query->offset($response['offset']);
+        // Apply the limit
+        $query->limit($response['limit']);
+
+        $response['data'] = $query->get();
+
+        // Generate pagination links based on pagination type
+        if ($type === 1) {
+            $response['links'] = $this->getLinks($response['page'], $response['total'], $response['limit']);
+        } elseif ($type === 2 && !$response['data']->isEmpty()) {
+            $response['links'] = $this->getLoadMore($response['page'], $response['limit']);
+        } elseif ($type === 3 && !$response['data']->isEmpty()) {
+            $response['links'] = $this->getScroll($response['page'], $response['limit']);
+        }
+
+        $start = $response['offset'] + 1;
+        $end = $response['offset'] + $response['limit'];
+        if ($end > $response['total']) {
+            $end = $response['total'];
+        }
+        $response['count'] = "Showing $start-$end of $response[total] items";
+        return $response;
+    }
+
+    /**
+     * Generate pagination links for default pagination.
+     *
+     * @param int $page The current page.
+     * @param int $total The total number of records.
+     * @param int $limit The number of records per page.
+     * @return string HTML for pagination links.
+     */
+    public function getLinks(int $page = 1, int $total = 0, int $limit = 20): string
+    {
+        if ($total === 0 || $total <= $limit) {
+            return '';
+        }
+
+        $lastPage = (int)ceil($total / $limit);
+
+        return view('common/pagination', ['page' => $page, 'lastPage' => $lastPage, 'total' => $total, 'limit' => $limit]);
+    }
+
+    /**
+     * Generate a "Load More" button for pagination.
+     *
+     * @param int $page The current page.
+     * @param int $limit The number of records per page.
+     * @return string HTML for the "Load More" button.
+     */
+    public function getLoadMore(int $page, int $limit): string
+    {
+        return '<div class="pagination-load-more"><button class="btn btn-default page-link" data-page="' . ($page + 1) . '">Load More</button></div>';
+    }
+
+    /**
+     * Generate a "Scroll Load More" button for infinite scroll pagination.
+     *
+     * @param int $page The current page.
+     * @param int $limit The number of records per page.
+     * @return string HTML for the "Load More" button with hidden style for infinite scroll.
+     */
+    public function getScroll(int $page, int $limit): string
+    {
+        return '<div class="pagination-load-more" style="display:none"><button class="btn btn-default page-link" data-page="' . ($page + 1) . '">Load More</button></div>';
+    }
+}
+

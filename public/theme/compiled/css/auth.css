@@ -1,0 +1,68 @@
+body {
+  background-color: var(--bs-body-bg);
+}
+#auth {
+  height: 100vh;
+  overflow-x: hidden;
+}
+#auth #auth-right {
+  height: 100%;
+  background: url(../png/4853433.png), linear-gradient(90deg, #2d499d, #3f5491);
+}
+#auth #auth-left {
+  /* padding: 5rem; */
+  padding: 4.85rem;
+  position: relative;
+  z-index: 3;
+}
+#auth #auth-left .auth-title {
+  font-size: 2.8rem;
+  margin-bottom: 1rem;
+}
+#auth #auth-left .auth-subtitle {
+  font-size: 1.1rem;
+  line-height: 2rem;
+  color: #a8aebb;
+}
+#auth #auth-left .auth-logo {
+  margin-bottom: 2.7rem;
+}
+#auth #auth-left .auth-logo img {
+  /* height: 2rem; */
+  width: 100px;
+}
+@media screen and (max-width: 1430px) { 
+    .common-home-img img {
+        width: 450px;
+        height: 450px;
+    }
+    #auth #auth-left {
+      padding: 2.75rem;
+    }
+}
+@media screen and (max-width: 1399.9px) {
+    #auth #auth-left .auth-title {
+        font-size: 2rem; 
+    }
+  #auth #auth-left .auth-logo {
+    margin-bottom: 3rem;
+  }
+  #auth #auth-left .auth-subtitle {
+    font-size: 1rem;
+    line-height: 1rem;
+  }
+
+}
+@media screen and (max-width: 767px) {
+  #auth #auth-left {
+    padding: 5rem;
+  }
+}
+@media screen and (max-width: 576px) {
+  #auth #auth-left {
+    padding: 5rem 3rem;
+  }
+}
+html[data-bs-theme="dark"] #auth-right {
+  background: url(../png/4853433.png), linear-gradient(90deg, #2d499d, #3f5491);
+}
