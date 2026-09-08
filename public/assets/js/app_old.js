@@ -24,7 +24,7 @@ const app = {
      * @param {Object} data - Key-value pairs for replacement
      * @returns {string} Processed HTML string with replacements
      */
-    dataToHtml: function(htmlString, data) {
+    dataToHtml: function (htmlString, data) {
         // Replace all known placeholders with values
         Object.entries(data).forEach(([key, value]) => {
             htmlString = htmlString.replaceAll(`__${key}__`, value);
@@ -39,7 +39,7 @@ const app = {
      * @param {Array} data - Array of data objects to render
      * @returns {string} Combined HTML string
      */
-    renderHtmlData: function(template, data) {
+    renderHtmlData: function (template, data) {
         if (!template) return "";
         return data.reduce((html, item) => html + this.dataToHtml(template, item), "");
     },
@@ -48,7 +48,7 @@ const app = {
      * Shows a modal view loaded from a URL
      * @param {string} url - URL to fetch modal content
      */
-    showModalView: function(url) {
+    showModalView: function (url) {
         this.showLoading();
         $.ajax({
             url,
@@ -67,27 +67,27 @@ const app = {
     /**
      * Modal management functions
      */
-    setModalContent: function(html) {
+    setModalContent: function (html) {
         this.commonModel.find("#common-modal-content").html(html);
     },
 
-    showModal: function() {
+    showModal: function () {
         if (!this.commonModel.is(":visible")) {
             this.commonModel.modal("show");
         }
     },
 
-    hideModal: function() {
+    hideModal: function () {
         if (this.commonModel.is(":visible")) {
             this.commonModel.modal("hide");
         }
     },
-    
-     /**
-     * Shows a modal view loaded from a URL
-     * @param {string} url - URL to fetch modal content
-     */
-    showCustomModalView: function(url) {
+
+    /**
+    * Shows a modal view loaded from a URL
+    * @param {string} url - URL to fetch modal content
+    */
+    showCustomModalView: function (url) {
         this.showLoading();
         $.ajax({
             url,
@@ -106,17 +106,17 @@ const app = {
     /**
      * Modal management functions
      */
-    setCustomModalContent: function(html) {
+    setCustomModalContent: function (html) {
         this.custCommonModel.find("#custom-common-modal-content").html(html);
     },
 
-    showCustomModal: function() {
+    showCustomModal: function () {
         if (!this.custCommonModel.is(":visible")) {
             this.custCommonModel.modal("show");
         }
     },
 
-    hideCustomModal: function() {
+    hideCustomModal: function () {
         if (this.custCommonModel.is(":visible")) {
             this.custCommonModel.modal("hide");
         }
@@ -125,11 +125,11 @@ const app = {
     /**
      * Loading indicator management
      */
-    showLoading: function() {
-        Swal.showLoading(); 
+    showLoading: function () {
+        Swal.showLoading();
     },
 
-    hideLoading: function() {
+    hideLoading: function () {
         Swal.close();
     },
 
@@ -138,14 +138,14 @@ const app = {
      * @param {HTMLElement} obj - DOM element with data attributes
      * @param {Function} cb - Callback function
      */
-    ajaxAction: function(obj, cb) {
+    ajaxAction: function (obj, cb) {
         const $obj = $(obj);
         const postData = {};
-        
+
         if ($obj.data("id")) {
             postData.id = $obj.data("id");
         }
-        
+
         this.ajaxPost($obj.data("action"), postData, cb);
     },
 
@@ -154,7 +154,7 @@ const app = {
      * @param {HTMLElement} obj - DOM element with data attributes
      * @param {Function} cb - Callback function
      */
-    confirmAction: function(obj, cb) {
+    confirmAction: function (obj, cb) {
         const $obj = $(obj);
         const postData = $obj.data("id") ? { id: $obj.data("id") } : {};
         this.ajaxConfirm($obj.data("action"), postData, cb);
@@ -166,7 +166,7 @@ const app = {
      * @param {Object} postData - Data to send
      * @param {Function} cb - Callback function
      */
-    ajaxConfirm: function(url, postData, cb) {
+    ajaxConfirm: function (url, postData, cb) {
         Swal.fire({
             title: "Are you sure?",
             text: "You won't be able to revert this!",
@@ -184,13 +184,13 @@ const app = {
             }
         });
     },
-    
-     /**
-     * Performs an AJAX action with confirmation
-     * @param {HTMLElement} obj - DOM element with data attributes
-     * @param {Function} cb - Callback function
-     */
-    confirmStatusAction: function(obj, cb) {
+
+    /**
+    * Performs an AJAX action with confirmation
+    * @param {HTMLElement} obj - DOM element with data attributes
+    * @param {Function} cb - Callback function
+    */
+    confirmStatusAction: function (obj, cb) {
         const $obj = $(obj);
         const postData = $obj.data("id") ? { id: $obj.data("id") } : {};
         this.ajaxStatusConfirm($obj.data("action"), postData, cb);
@@ -202,7 +202,7 @@ const app = {
      * @param {Object} postData - Data to send
      * @param {Function} cb - Callback function
      */
-    ajaxStatusConfirm: function(url, postData, cb) {
+    ajaxStatusConfirm: function (url, postData, cb) {
         Swal.fire({
             title: "Are you sure?",
             text: "You want to change the status!",
@@ -220,94 +220,94 @@ const app = {
             }
         });
     },
-    
-    
+
+
     /**
      * Performs an AJAX action with confirmation
      * @param {HTMLElement} obj - DOM element with data attributes
      * @param {Function} cb - Callback function
      */
-    confirmApproveAction: function(obj, cb) {
+    confirmApproveAction: function (obj, cb) {
         const $obj = $(obj);
         const postData = $obj.data("id") ? { id: $obj.data("id") } : {};
         this.ajaxApproveConfirm($obj.data("action"), postData, cb);
     },
-    
-       /**
-     * Shows a confirmation dialog before performing AJAX POST
-     * @param {string} url - Target URL
-     * @param {Object} postData - Data to send
-     * @param {Function} cb - Callback function
-     */
-   
-    
-    ajaxApproveConfirm: function(url, postData, cb) {
-    Swal.fire({
-        title: "Are you sure?",
-        text: "You Want To Approve It!",
-        icon: "warning",
-        showCancelButton: true,
-        confirmButtonText: "Yes",
-        cancelButtonText: "No",
-        customClass: {
-            confirmButton: "btn btn-primary",
-            cancelButton: "btn btn-secondary"
-        },
-        preConfirm: () => {
-            return new Promise((resolve, reject) => {
-                // Show loading spinner when confirming the action
-                Swal.fire({
-                    title: "Processing...",
-                    text: "Approving please wait...",
-                    icon: "info",
-                    allowOutsideClick: false,
-                    showConfirmButton: false,
-                    onOpen: () => {
-                        Swal.showLoading(); // Show the loading spinner
-                    }
-                });
 
-                // Perform the AJAX request
-                this.ajaxPost(url, postData, (response) => {
-                    if (response.status === 1) {
-                        // Hide the loading spinner and show the success message
-                        Swal.fire({
-                            // title: "Success!",
-                            text: response.message,
-                            icon: "success",
-                            confirmButtonText: "OK"
-                        }).then(() => {
-                            window.location.reload();
-                        });
-                    } else {
-                        // Hide the loading spinner and show the error message
-                        Swal.fire({
-                            title: "Warning!",
-                            html: response.message,
-                            icon: "warning",
-                            confirmButtonText: "OK"
-                        });
-                    }
-                    resolve(); // Resolve the promise to close the loading state
-                });
-            });
-        }
-    });
-},
+    /**
+  * Shows a confirmation dialog before performing AJAX POST
+  * @param {string} url - Target URL
+  * @param {Object} postData - Data to send
+  * @param {Function} cb - Callback function
+  */
 
- /**
-     * Performs an AJAX action with confirmation
-     * @param {HTMLElement} obj - DOM element with data attributes
-     * @param {Function} cb - Callback function
-     */
-    confirmRejectAction: function(obj, cb) {
+
+    ajaxApproveConfirm: function (url, postData, cb) {
+        Swal.fire({
+            title: "Are you sure?",
+            text: "You Want To Approve It!",
+            icon: "warning",
+            showCancelButton: true,
+            confirmButtonText: "Yes",
+            cancelButtonText: "No",
+            customClass: {
+                confirmButton: "btn btn-primary",
+                cancelButton: "btn btn-secondary"
+            },
+            preConfirm: () => {
+                return new Promise((resolve, reject) => {
+                    // Show loading spinner when confirming the action
+                    Swal.fire({
+                        title: "Processing...",
+                        text: "Approving please wait...",
+                        icon: "info",
+                        allowOutsideClick: false,
+                        showConfirmButton: false,
+                        onOpen: () => {
+                            Swal.showLoading(); // Show the loading spinner
+                        }
+                    });
+
+                    // Perform the AJAX request
+                    this.ajaxPost(url, postData, (response) => {
+                        if (response.status === 1) {
+                            // Hide the loading spinner and show the success message
+                            Swal.fire({
+                                // title: "Success!",
+                                text: response.message,
+                                icon: "success",
+                                confirmButtonText: "OK"
+                            }).then(() => {
+                                window.location.reload();
+                            });
+                        } else {
+                            // Hide the loading spinner and show the error message
+                            Swal.fire({
+                                title: "Warning!",
+                                html: response.message,
+                                icon: "warning",
+                                confirmButtonText: "OK"
+                            });
+                        }
+                        resolve(); // Resolve the promise to close the loading state
+                    });
+                });
+            }
+        });
+    },
+
+    /**
+        * Performs an AJAX action with confirmation
+        * @param {HTMLElement} obj - DOM element with data attributes
+        * @param {Function} cb - Callback function
+        */
+    confirmRejectAction: function (obj, cb) {
         const $obj = $(obj);
         const postData = $obj.data("id") ? { id: $obj.data("id") } : {};
         this.ajaxRejectConfirm($obj.data("action"), postData, cb);
     },
 
 
-     ajaxRejectConfirm: function(url, postData, cb) {
+    ajaxRejectConfirm: function (url, postData, cb) {
         Swal.fire({
             title: "Are you sure?",
             text: "You Want to Reject It!",
@@ -332,7 +332,7 @@ const app = {
                             Swal.showLoading(); // Show the loading spinner
                         }
                     });
-    
+
                     // Perform the AJAX request
                     this.ajaxPost(url, postData, (response) => {
                         if (response.status === 1) {
@@ -360,24 +360,24 @@ const app = {
             }
         });
     },
-       /**
-     * Performs an AJAX action with confirmation
-     * @param {HTMLElement} obj - DOM element with data attributes
-     * @param {Function} cb - Callback function
-     */
-       confirmRestoreAction: function(obj, cb) {
+    /**
+  * Performs an AJAX action with confirmation
+  * @param {HTMLElement} obj - DOM element with data attributes
+  * @param {Function} cb - Callback function
+  */
+    confirmRestoreAction: function (obj, cb) {
         const $obj = $(obj);
         const postData = $obj.data("id") ? { id: $obj.data("id") } : {};
         this.ajaxRestoreConfirm($obj.data("action"), postData, cb);
     },
 
-      /**
-     * Shows a confirmation dialog before performing AJAX POST
-     * @param {string} url - Target URL
-     * @param {Object} postData - Data to send
-     * @param {Function} cb - Callback function
-     */
-      ajaxRestoreConfirm: function(url, postData, cb) {
+    /**
+   * Shows a confirmation dialog before performing AJAX POST
+   * @param {string} url - Target URL
+   * @param {Object} postData - Data to send
+   * @param {Function} cb - Callback function
+   */
+    ajaxRestoreConfirm: function (url, postData, cb) {
         Swal.fire({
             title: "Are you sure?",
             text: "You Want To Restore It !",
@@ -395,16 +395,16 @@ const app = {
             }
         });
     },
-    
+
     /**
      * AJAX utility functions
      */
-    ajaxPost: function(url, postData, cb) {
+    ajaxPost: function (url, postData, cb) {
         postData[CSRF_NAME] = CSRF_TOKEN;
         this.ajaxRequest(url, postData, cb);
     },
 
-    ajaxGet: function(url, cb = this.ajaxSuccess) {
+    ajaxGet: function (url, cb = this.ajaxSuccess) {
         this.showLoading();
         $.ajax({
             url,
@@ -420,7 +420,7 @@ const app = {
      * @param {HTMLFormElement} form - Form element to submit
      * @param {Function} cb - Callback function
      */
-    ajaxForm: function(form, cb) {
+    ajaxForm: function (form, cb) {
         const $form = $(form);
         console.log($form);
         this.ajaxRequest($form.attr("action"), $form.serialize(), cb);
@@ -430,7 +430,7 @@ const app = {
      * Shows a modal view loaded from a URL
      * @param {string} url - URL to fetch modal content
      */
-    showToastAlert: function(message,type) {
+    showToastAlert: function (message, type) {
         const $bgColor = (type == 'success' ? 'green' : 'red');
         Toastify({
             text: message,
@@ -439,7 +439,7 @@ const app = {
             gravity: "top",
             position: "right",
             backgroundColor: $bgColor,
-          }).showToast()
+        }).showToast()
     },
 
     /**
@@ -447,12 +447,12 @@ const app = {
      * @param {string} url - URL to fetch modal content
      */
     showSweetAlertToast(message, type) {
-      const allowedTypes = ['success', 'error', 'warning', 'info', 'question'];
-    
-      Toast.fire({
-        icon: allowedTypes.includes(type) ? type : 'info', // default to 'info' if invalid
-        title: message
-      });
+        const allowedTypes = ['success', 'error', 'warning', 'info', 'question'];
+
+        Toast.fire({
+            icon: allowedTypes.includes(type) ? type : 'info', // default to 'info' if invalid
+            title: message
+        });
     },
 
     /**
@@ -460,7 +460,7 @@ const app = {
      * @param {HTMLFormElement} form - Form element with files
      * @param {Function} cb - Callback function
      */
-    ajaxFileForm: function(form, cb) {
+    ajaxFileForm: function (form, cb) {
         const $form = $(form);
         this.ajaxFileRequest($form.attr("action"), new FormData($form[0]), cb);
     },
@@ -476,7 +476,7 @@ const app = {
      * @param {Object} postData - Data to send
      * @param {Function} cb - Callback function
      */
-    ajaxRequest: function(url, postData, cb = this.ajaxSuccess) {
+    ajaxRequest: function (url, postData, cb = this.ajaxSuccess) {
         this.showLoading();
         $.ajax({
             url,
@@ -522,12 +522,12 @@ const app = {
      * Handles the next action based on AJAX response
      * @param {Object} response - Server response object
      */
-    runNextAction: function(next,response){
+    runNextAction: function (next, response) {
         if (next === "load") {
             pjax.loadPage(response.url);
         } else if (next === "refresh") {
             pjax.loadPage(window.location.href);
-        } else if(next === "list_refresh"){
+        } else if (next === "list_refresh") {
             pagination.loadData();
         } else if (next === "table_refresh") {
             datatableObj.ajax.reload();
@@ -537,21 +537,21 @@ const app = {
             window.location.reload();
         } else if (next === "hide_modal") {
             this.hideModal();
-        } else  if (next === "show_modal_view") {
+        } else if (next === "show_modal_view") {
             this.showModalView(response.url);
-        }  
+        }
     },
 
-    nextAction: function(response) {
+    nextAction: function (response) {
         if (response.next === undefined) {
             return false;
         }
-        if(response.next.match(',')){
-            response.next.split(',').forEach(function(next){
-                app.runNextAction(next,response);
+        if (response.next.match(',')) {
+            response.next.split(',').forEach(function (next) {
+                app.runNextAction(next, response);
             })
-        }else{
-            app.runNextAction(response.next,response);
+        } else {
+            app.runNextAction(response.next, response);
         }
     },
 
@@ -559,7 +559,7 @@ const app = {
      * Default AJAX success handler
      * @param {Object} response - Server response
      */
-    ajaxSuccess: function(response) {
+    ajaxSuccess: function (response) {
         if (response.status) {
             if (response.message) {
                 Swal.fire("", response.message, "success").then(() => {
@@ -576,7 +576,7 @@ const app = {
     /**
      * Default AJAX error handler
      */
-    ajaxError: function() {
+    ajaxError: function () {
         Swal.fire(
             "Oops!",
             "Something went wrong. Please try again later.",
@@ -587,7 +587,7 @@ const app = {
     /**
      * Resource loading utilities
      */
-    addCSS: function(urls) {
+    addCSS: function (urls) {
         urls.forEach(url => {
             if (!$(`link[href="${url}"]`).length) {
                 $("body").append(`<link href="${url}" rel="stylesheet">`);
@@ -595,7 +595,7 @@ const app = {
         });
     },
 
-    addJS: function(urls) {
+    addJS: function (urls) {
         urls.forEach(url => {
             if (!$(`script[src="${url}"]`).length) {
                 $("body").append(`<script src="${url}"></script>`);
@@ -608,7 +608,7 @@ const app = {
      * @param {string} url - Script URL
      * @param {Function} callback - Callback function
      */
-    loadScript: function(url, callback) {
+    loadScript: function (url, callback) {
         if ($(`script[src="${url}"]`).length) {
             callback();
             return;
@@ -619,7 +619,7 @@ const app = {
         script.src = url;
 
         if (script.readyState) {
-            script.onreadystatechange = function() {
+            script.onreadystatechange = function () {
                 if (script.readyState === "loaded" || script.readyState === "complete") {
                     script.onreadystatechange = null;
                     callback();
@@ -635,18 +635,18 @@ const app = {
     /**
      * Cookie management utilities
      */
-    setCookie: function(cname, cvalue, exdays) {
+    setCookie: function (cname, cvalue, exdays) {
         const d = new Date();
         d.setTime(d.getTime() + (exdays * 24 * 60 * 60 * 1000));
         const expires = `expires=${d.toUTCString()}`;
         document.cookie = `${cname}=${cvalue}; ${expires};path=/`;
     },
 
-    getCookie: function(cname) {
+    getCookie: function (cname) {
         const name = `${cname}=`;
         const decodedCookie = decodeURIComponent(document.cookie);
         const ca = decodedCookie.split(';');
-        
+
         for (let c of ca) {
             while (c.charAt(0) === ' ') {
                 c = c.substring(1);
@@ -664,15 +664,15 @@ const app = {
         }
         return { status: 1, message: "" };
     },
-    
+
     /**
      * Generates a random ID string
      * @param {number} length - Length of ID to generate
      * @returns {string} Random ID
      */
-    makeId: function(length) {
+    makeId: function (length) {
         const characters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
-        return Array.from({ length }, () => 
+        return Array.from({ length }, () =>
             characters.charAt(Math.floor(Math.random() * characters.length))
         ).join('');
     },
@@ -680,7 +680,7 @@ const app = {
     /**
      * Initializes the application
      */
-    init: function() {
+    init: function () {
         this.commonModel = $("#common-modal");
         this.custCommonModel = $("#custCommonModal");
 
@@ -704,34 +704,34 @@ $(document).ready(function () {
 /**
  * Executes all registered document-ready functions.
  */
-    function runDocumentReady() {
-        if (documentReadyFunctions) {
-            $.each(documentReadyFunctions, function (index, cb) {
-                cb();
-            });
-            documentReadyFunctions = [];
-        }
-        flatpickr('.flatpickr-range', {
+function runDocumentReady() {
+    if (documentReadyFunctions) {
+        $.each(documentReadyFunctions, function (index, cb) {
+            cb();
+        });
+        documentReadyFunctions = [];
+    }
+    flatpickr('.flatpickr-range', {
         dateFormat: "F j, Y",
         mode: 'range'
-        })
-    }
+    })
+}
 
-   $('.sidebar_hide').click(function(){
-        if ($(window).width() <= 1198) {
-            $('.sidebar_click').hide();
-            $('.sidebar-backdrop').removeClass();
-        }
-    });
-    
-    $('.sidebar_show').click(function(){
-       if($(window).width() <= 1198) {
-           $('.sidebar_click').show();
-       }
-    });
-    
-    // show password
-  $(document).on('click', '.toggle-password', function () {
+$('.sidebar_hide').click(function () {
+    if ($(window).width() <= 1198) {
+        $('.sidebar_click').hide();
+        $('.sidebar-backdrop').removeClass();
+    }
+});
+
+$('.sidebar_show').click(function () {
+    if ($(window).width() <= 1198) {
+        $('.sidebar_click').show();
+    }
+});
+
+// show password
+$(document).on('click', '.toggle-password', function () {
     const wrapper = $(this).closest('.position-relative'); // Get the closest container
     const input = wrapper.find('input'); // Find the input inside that container
     const icon = $(this).find('i'); // Get the <i> inside the clicked span
@@ -742,48 +742,48 @@ $(document).ready(function () {
     icon.toggleClass('bi-eye bi-eye-slash');
 });
 
-    
-    $('.google-translate').hide();
-    $('#change_language_btn').show();
 
-    // When the Change Language button is clicked, toggle visibility
-    $('#change_language_btn').click(function() {
-        $('.google-translate').toggle(); // Toggle the visibility of the Google Translate element
-        $(this).toggle(); // Toggle the visibility of the Change Language button
-    });
+$('.google-translate').hide();
+$('#change_language_btn').show();
 
-    // Wait for the Google Translate dropdown to be inserted into the DOM
-    document.addEventListener("DOMContentLoaded", function () {
-        var targetNode = document.getElementById('google_translate_element');
-    
-        if (targetNode) {
-            let observer = new MutationObserver(function (mutations) {
-                mutations.forEach(function (mutation) {
-                    if (mutation.addedNodes.length) {
-                        // Now that the select element exists, we can bind the change event
-                        $('#google_translate_element select').on('change', function () {
-                            // Hide the Google Translate element when a language is selected
-                            $('.google-translate').hide();
-                            $('#change_language_btn').show(); // Show the Change Language button again
-                        });
-                    }
-                });
+// When the Change Language button is clicked, toggle visibility
+$('#change_language_btn').click(function () {
+    $('.google-translate').toggle(); // Toggle the visibility of the Google Translate element
+    $(this).toggle(); // Toggle the visibility of the Change Language button
+});
+
+// Wait for the Google Translate dropdown to be inserted into the DOM
+document.addEventListener("DOMContentLoaded", function () {
+    var targetNode = document.getElementById('google_translate_element');
+
+    if (targetNode) {
+        let observer = new MutationObserver(function (mutations) {
+            mutations.forEach(function (mutation) {
+                if (mutation.addedNodes.length) {
+                    // Now that the select element exists, we can bind the change event
+                    $('#google_translate_element select').on('change', function () {
+                        // Hide the Google Translate element when a language is selected
+                        $('.google-translate').hide();
+                        $('#change_language_btn').show(); // Show the Change Language button again
+                    });
+                }
             });
-    
-            // Start observing the Google Translate container for changes
-            observer.observe(targetNode, {
-                childList: true,
-                subtree: true
-            });
-        } else {
-            
-        }
-    });
-   
-    
-    
-    
-    $(window).resize(function() {
+        });
+
+        // Start observing the Google Translate container for changes
+        observer.observe(targetNode, {
+            childList: true,
+            subtree: true
+        });
+    } else {
+
+    }
+});
+
+
+
+
+$(window).resize(function () {
     if ($(window).width() > 1198) {
         // Ensure sidebar is always visible when the window width is greater than 1198px
         $('.sidebar_click').show();
@@ -848,11 +848,11 @@ window.addEventListener('load', function () {
         }, 1000); // wait a bit to ensure the dropdown is rendered
     }
 
-        //  // Stop the fake link from navigating
-        //     const fakeLink = document.querySelector('.VIpgJd-ZVi9od-xl07Ob-lTBxed');
-        //     if (fakeLink) {
-        //         fakeLink.setAttribute('href', 'javascript:void(0)');
-        //     }
+    //  // Stop the fake link from navigating
+    //     const fakeLink = document.querySelector('.VIpgJd-ZVi9od-xl07Ob-lTBxed');
+    //     if (fakeLink) {
+    //         fakeLink.setAttribute('href', 'javascript:void(0)');
+    //     }
 
 
     document.addEventListener('change', function (e) {
@@ -861,7 +861,7 @@ window.addEventListener('load', function () {
         }
     });
     $('.VIpgJd-ZVi9od-xl07Ob-lTBxed').attr('href', 'javascript:void(0)');
-    
+
 });
 
 window.addEventListener('load', function () {
@@ -888,26 +888,25 @@ window.addEventListener('load', function () {
 
 
 
-var contentEditor={
-    init:function()
-    {
-        $('.content-editor').on('mouseenter',function(){
-            element=$(this);
-            var id=element.data('id');
-            id=id?id:element.data('key');
-            if(element.data('class')=='action'){
-                if(!element.find('.content-editor-action').length){
+var contentEditor = {
+    init: function () {
+        $('.content-editor').on('mouseenter', function () {
+            element = $(this);
+            var id = element.data('id');
+            id = id ? id : element.data('key');
+            if (element.data('class') == 'action') {
+                if (!element.find('.content-editor-action').length) {
                     element.append('<span class="content-editor-action white-pencil-bg" onclick="app.showModalView(\'admin/content/update?id=' + id + '\');" ><i class="bi bi-pencil"></i></span>');
                 }
-            }else{
-                if(!element.find('.content-editor-button').length){
-                    element.append('<div class="content-editor-button white-pencil-bg" onclick="contentEditor.showEditor(\''+id+'\');" ><i class="bi bi-pencil"></i></div>')
+            } else {
+                if (!element.find('.content-editor-button').length) {
+                    element.append('<div class="content-editor-button white-pencil-bg" onclick="contentEditor.showEditor(\'' + id + '\');" ><i class="bi bi-pencil"></i></div>')
                 }
             }
         })
     },
-    showEditor:function(key){
-        app.showModalView('admin/content/update?id='+key);
+    showEditor: function (key) {
+        app.showModalView('admin/content/update?id=' + key);
     }
 }
 
@@ -1179,9 +1178,9 @@ class Pagination {
         this.loadList(1);// Reset to the first page after search
         app.setUrl(window.location.href, { page: 1, search: value });// Update the URL with search parameters
     }
-    
-    filterClear(){
-        this.postData.filter={};
+
+    filterClear() {
+        this.postData.filter = {};
         this.setUrl(window.location.href, {
             page: 1,
             filter: "",
@@ -1280,7 +1279,7 @@ class ImageCrop {
         this.cropperObj = new Cropper(this.cropTarget, this.cropperConfig);
         $(".image-crop-action").show();
     }
-    
+
     /**
      * Sets the cropper with a selected file.
      * @param {File} file - The file to be cropped.
@@ -1337,7 +1336,7 @@ class ImageCrop {
             });
         });
     }
- 
+
     /**
      * Converts a data URL to a File object.
      * @param {string} url - The data URL to convert.
@@ -1520,11 +1519,11 @@ function initEditorFull(editorElement, fileUploadUrl) {
                 var formData = new FormData();
                 formData.append("upload", files[0]);
                 app.ajaxFilePost(fileUploadUrl, formData, function (response) {
-                    if(response.status){
+                    if (response.status) {
                         seditor.summernote("insertImage", response.url);
-                    }else{
+                    } else {
                         Swal.fire("Warning", response.message, "warning");
-                    } 
+                    }
                 });
             },
         },

@@ -38,25 +38,23 @@ class VendorReceivedontroller extends Controller
      */
     public function index()
     {
-        $sessionUser = auth()->user();  
-        $subscriptionData = Subscription::where('user_id',$sessionUser->id)->first();
-        $subscriptionStatus = $subscriptionData->status ?? null;
-        $isValid = false;
-        if($sessionUser->unlimited_conractors == 1){
-            $isValid = true;
-        }else{
-            $companyplan = (new User())->getCompanyPlanInfo($sessionUser->id);
-            if ($companyplan == 1 || $companyplan == null || $subscriptionStatus != 'active') {
-                $isValid = false;
-            }else{
-                $isValid = true;
+        $sessionUser = auth()->user();
+        $redirect = $sessionUser ? $sessionUser->checkCompanyPlanAccess() : redirect('login');
+        if ($redirect) {
+            return $redirect;
+        }
+
+        $effectiveCompanyId = $sessionUser ? $sessionUser->getCompanyOwnerId() : 0;
+        $companyOwner = ($effectiveCompanyId != $sessionUser->id) ? User::find($effectiveCompanyId) : $sessionUser;
+
+        if (($companyOwner->unlimited_conractors ?? 0) != 1) {
+            $companyplan = (new User())->getCompanyPlanInfo($effectiveCompanyId);
+            if ($companyplan == 1 || $companyplan == null) {
+                return redirect('company/dashboard')->with('warning', 'This feature isn’t available on your current plan. Please upgrade to access it.');
             }
         }
-        if($isValid == true){     
-            return view('company/vendor_received/index');    
-        }else{
-            return redirect('company/dashboard')->with('warning', 'This feature isn’t available on your current plan. Please upgrade to access it.');
-        }
+
+        return view('company/vendor_received/index');    
     }
     
      /**

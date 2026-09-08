@@ -33,55 +33,52 @@ class SiteController extends Controller
             return redirect()->route('plan-select', ['plan_id' => $plan]);
         }
     $user = auth()->user();
-
-    // If unlimited_conractors is 1, skip subscription check
-    if ($user->unlimited_conractors == 1 || 
-        (Subscription::where('user_id', $user->id)->value('status') === 'active')) {
-        
-        $documentTypeData = DocumentType::where('is_hidden', 0)->get();
-        $status = isset($_GET['status']) ? $_GET['status'] : 'Active';
-        // dd($status);
-        $allowedStatuses = ['Active', 'Expiring Soon', 'Expired'];
-        if (!in_array($status, $allowedStatuses)) {
-            abort(404); // Show 404 Page
-        }
-            $authId = auth()->id();
-                $totalUser = User::where('type', 1)->where('company_id', $authId)->count();
-
-                $dashboardStats     = DocumentHelper::getCompanyDashboardDocumentStats($authId);
-                $activeUser         = $dashboardStats['activeUser'];
-                $deactiveUser       = $dashboardStats['deactiveUser'];
-                $expiredUser        = $dashboardStats['expiredUser'];
-                $compliancePercentage = $dashboardStats['compliancePercentage'];
-                $expiringPercentage = $dashboardStats['expiringPercentage'];
-                $expiredPercentage  = $dashboardStats['expiredPercentage'];
-
-        return view('company.site.dashboard', compact(
-            'totalUser',
-            'activeUser',
-            'deactiveUser',
-            'expiredUser',
-            'compliancePercentage',
-            'expiringPercentage',
-            'expiredPercentage',
-            'documentTypeData',
-            'status'
-        ));
-    
-    } else {
-        return redirect()->route('company/plan')->with('error', 'Your plan was expired, please upgrade your plan');
+    $redirect = $user ? $user->checkCompanyPlanAccess() : redirect('login');
+    if ($redirect) {
+        return $redirect;
     }
+
+    $effectiveCompanyId = $user->getCompanyOwnerId();
+    $documentTypeData = DocumentType::where('is_hidden', 0)->get();
+    $status = isset($_GET['status']) ? $_GET['status'] : 'Active';
+    $allowedStatuses = ['Active', 'Expiring Soon', 'Expired'];
+    if (!in_array($status, $allowedStatuses)) {
+        abort(404); // Show 404 Page
+    }
+    $authId = $effectiveCompanyId;
+    $totalUser = User::where('type', 1)->where('company_id', $authId)->count();
+
+    $dashboardStats     = DocumentHelper::getCompanyDashboardDocumentStats($authId);
+    $activeUser         = $dashboardStats['activeUser'];
+    $deactiveUser       = $dashboardStats['deactiveUser'];
+    $expiredUser        = $dashboardStats['expiredUser'];
+    $compliancePercentage = $dashboardStats['compliancePercentage'];
+    $expiringPercentage = $dashboardStats['expiringPercentage'];
+    $expiredPercentage  = $dashboardStats['expiredPercentage'];
+
+    return view('company.site.dashboard', compact(
+        'totalUser',
+        'activeUser',
+        'deactiveUser',
+        'expiredUser',
+        'compliancePercentage',
+        'expiringPercentage',
+        'expiredPercentage',
+        'documentTypeData',
+        'status'
+    ));
 }
 
     
     public function expirationalList(Request $request){
-        $authId = auth()->id();
+        $authId = auth()->user()->getCompanyOwnerId();
         return response()->json((new Document())->expirationalList($request->all(),$authId));
     }
     
     public function support(){
        $user = auth()->user();
-       $companyPlanId = (new User())->getCompanyPlanInfo($user->id);
+       $effectiveCompanyId = $user->getCompanyOwnerId();
+       $companyPlanId = (new User())->getCompanyPlanInfo($effectiveCompanyId);
        return view('company/support/index',compact('companyPlanId','user'));
     }
 }

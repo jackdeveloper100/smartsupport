@@ -33,7 +33,7 @@ class ContractorController extends Controller
      */
     public function index()
     {
-       $company = User::where('type',2)->get();
+       $company = User::where('type',2)->where(function($q){ $q->whereNull('company_id')->orWhere('company_id', 0); })->get();
         return view('admin/contractor/index',compact('company'));
     }
 
@@ -51,53 +51,27 @@ class ContractorController extends Controller
     public function allDocumentView(){
         
         $documentTypeData = DocumentType::where('is_hidden',0);
-        $company = User::where('type',2)->get();
+        $company = User::where('type',2)->where(function($q){ $q->whereNull('company_id')->orWhere('company_id', 0); })->get();
         
         $status = isset($_GET['status']) ? $_GET['status'] : '';
         $allowedStatuses = ['Active', 'Expiring Soon', 'Expired'];
         if (!in_array($status, $allowedStatuses)) {
             abort(404); // Show 404 Page
         }
-         $dashboardStats = DocumentHelper::getAdminDashboardDocumentStats();
+
+        $dashboardStats = DocumentHelper::getAdminDashboardDocumentStats();
         $activeUser = $dashboardStats['activeUser'];
         $deactiveUser = $dashboardStats['deactiveUser'];
         $expiredUser = $dashboardStats['expiredUser'];
         $compliancePercentage = $dashboardStats['compliancePercentage'];
         $expiringPercentage = $dashboardStats['deactivePercentage'];
         $expiredPercentage = $dashboardStats['expiredPercentage'];
-        
-        // $documentData = Document::whereHas('documentType', function($q){
-        //         $q->where('is_hidden', 0);
-        //     })->count();
-            
-        // $totalUser = User::where('type', 1)->count();
-        // $activeUser = Document::where('status', 5)->count();
-        // $deactiveUser = Document::where('status', 2)->count();
-        // $expiredUser = Document::where('status', 3)->count();
-    
-        // if ($documentData > 0) {
-        //     $compliancePercentage = round(($activeUser / $documentData) * 100);
-        // } else {
-        //     $compliancePercentage = 0; 
-        // }
-        
-        // if ($documentData > 0) {
-        //     $expiringPercentage = round(($deactiveUser / $documentData) * 100);
-        // } else {
-        //     $expiringPercentage = 0; 
-        // }
-        
-        // if ($documentData > 0) {
-        //     $expiredPercentage = round(($expiredUser / $documentData) * 100);
-        // } else {
-        //     $expiredPercentage = 0; 
-        // }
             
         if($status == '' || $status == null){
             return redirect('admin/dashboard')->with('warning','Cannot Access Documents Page Directly');
         }
         
-        return view('admin/contractor_document/index',compact('documentTypeData','company','activeUser','deactiveUser','expiredUser','compliancePercentage','expiringPercentage','expiredPercentage'));
+        return view('admin/contractor_document/index',compact('documentTypeData','company','status','activeUser','deactiveUser','expiredUser','compliancePercentage','expiringPercentage','expiredPercentage'));
     }
     
     public function allDocumentsList(Request $request){
@@ -133,7 +107,7 @@ class ContractorController extends Controller
      */
     public function create()
     {
-        $companyName = User::where('type',2)->where('status',1)->get();
+        $companyName = User::where('type',2)->where('status',1)->where(function($q){ $q->whereNull('company_id')->orWhere('company_id', 0); })->get();
         return view('admin/contractor/create',compact('companyName'));
     }
 
@@ -148,7 +122,7 @@ class ContractorController extends Controller
         $model = User::find($request->id);
         $user = auth()->user();
         $permission = explode(',', $user->permission);
-        $companyName = User::where('type',2)->where('status',1)->get();
+        $companyName = User::where('type',2)->where('status',1)->where(function($q){ $q->whereNull('company_id')->orWhere('company_id', 0); })->get();
         // dd($model);
         if ($user->type == 1 && !in_array('admin/contractor/update', $permission)) {
             return redirect('admin/contractors')->with('error', 'No permission To Update contractor');

@@ -7,8 +7,9 @@ Plans
 @section('content')
 <?php
     $sessionUser = auth()->user();
-    $userModel = new \App\Models\User();
-    $totalContractor = $userModel->where('company_id', $sessionUser->id)->where('company_approved_status', 1)->count();
+    $effectiveCompanyId = $sessionUser->getCompanyOwnerId();
+    $subPlanId = (int)(@$subscriptionData->plan_id);
+    $totalContractor = \App\Models\User::getContractorCountForPlan($effectiveCompanyId, $subPlanId);
     $stripeEnable = config('setting.stripe_enable');
 
 ?>
@@ -38,16 +39,59 @@ Plans
 <section class="price-list" id="pricing">
     <div class="container">
         <div class="row">
-            <div class="col-12  m-auto">
+            <div class="col-12 m-auto">
                 <div class="pricing">
-                    <div class="row align-items-center">
+                    <div class="row align-items-center justify-content-center">
+                        @php
+                            $hasActiveSubRow = (@$subscriptionData->status == 'active');
+                            $subPlanId = (int)(@$subscriptionData->plan_id);
+
+                            $isLegacyActive = ($hasActiveSubRow && in_array($subPlanId, [1, 2, 3]));
+                            $isStandardActive = ($hasActiveSubRow && $subPlanId === 4);
+                            $hasPriorSubscription = (!empty($subscriptionData));
+                        @endphp
+
                         @foreach($plans as $plan)
                             @php
-                                $isHighlighted = $loop->index === 1;
-                                $isActive = @$subscriptionData->plan_id == $plan->id && @$subscriptionData->status == 'active';
+                                $isStandard = ($plan->id == 4);
+                                $isActive = ($hasActiveSubRow && $subPlanId == $plan->id);
+
+                                // CASE 1: Active Standard Plan (ID 4) -> Show ONLY Standard Plan (ID 4)
+                                if ($isStandardActive && !$isStandard) {
+                                    continue;
+                                }
+
+                                // CASE 2: Active Legacy Plan (1, 2, 3) -> Show ONLY Active Legacy Plan AND Standard Plan (ID 4)
+                                if ($isLegacyActive && !$isActive && !$isStandard) {
+                                    continue;
+                                }
+
+                                // CASE 3: New company or no active valid plan -> Show ONLY Standard Plan (ID 4)
+                                if (!$isStandardActive && !$isLegacyActive && !$isStandard) {
+                                    continue;
+                                }
+
+                                $isHighlighted = $isStandard || ($loop->index === 1);
+                                
+                                $canActivate = false;
+                                $buttonText = 'Sign Up';
+
+                                if ($isActive) {
+                                    $buttonText = 'Active Plan';
+                                    $canActivate = false;
+                                } elseif ($isStandard && ($isLegacyActive || $hasPriorSubscription)) {
+                                    $buttonText = 'Upgrade Plan';
+                                    $canActivate = true;
+                                } elseif ($isStandard && !$isStandardActive) {
+                                    $buttonText = 'Sign Up';
+                                    $canActivate = true;
+                                } else {
+                                    $buttonText = 'Unavailable';
+                                    $canActivate = false;
+                                }
                             @endphp
 
-                            <div class="col-md-4 px-sm-0 my-3">
+                            <div class="{{ ($isStandardActive || !$isLegacyActive) ? 'col-md-6 col-12' : 'col-md-4 px-sm-0 my-3' }}">
                                 <div class="card {{ $isHighlighted ? 'bg-primary text-white shadow-lg' : '' }}">
                                     <div class="card-header text-center {{ $isHighlighted ? 'bg-primary text-white' : $plan->status }}">
                                         <h4 class="card-title">{{ $plan->title }}</h4>
@@ -80,32 +124,31 @@ Plans
                                             <input type="hidden" name="plan_id" value="{{ $plan->id }}">
                                             <input type="hidden" name="userEmailToken" value="{{ $token }}">
 
-                                            @if(@$subscriptionData->plan_id !== null)
-                                                <button type="submit"
-                                                    class="btn btn-block
-                                                        @if($isActive && $isHighlighted)
-                                                            btn btn-light
-                                                        @elseif(!$isHighlighted)
-                                                            btn btn-primary
-                                                        @elseif($isHighlighted)
-                                                            btn btn-outline-white
-                                                        @else
-                                                            btn-light
-                                                        @endif"
-                                                    @if($isActive) disabled @endif>
-                                                    {{ $isActive ? 'Active Plan' : 'Upgrade Plan' }}
-                                                </button>
-                                            @else
-                                                <button type="submit" class="@if($isHighlighted) btn btn-outline-white @else btn btn-primary @endif btn-block">
-                                                    Sign Up
-                                                </button>
-                                            @endif
+                                            <button type="submit"
+                                                class="btn btn-block
+                                                    @if($isActive && $isHighlighted)
+                                                        btn-light
+                                                    @elseif($isActive)
+                                                        btn-primary
+                                                    @elseif($isHighlighted)
+                                                        btn-outline-white
+                                                    @else
+                                                        btn-primary
+                                                    @endif"
+                                                @if(!$canActivate) disabled @endif>
+                                                {{ $buttonText }}
+                                            </button>
                                         </form>
                                     </div>
                                 </div>
                             </div>
                         @endforeach
-                    </div> </div> </div> </div> </div> </section>
+                    </div> 
+                </div> 
+            </div> 
+        </div> 
+    </div> 
+</section>
 
         <div class="modal fade" id="contractorLimitModal" tabindex="-1" role="dialog" aria-labelledby="contractorLimitModalLabel" aria-hidden="true">
             <div class="modal-dialog modal-dialog-centered" role="document">
@@ -120,14 +163,9 @@ Plans
                        You have more contractors than this plan allows. Please choose another plan or select which contractors you want to keep.
                     </div>
                     <div class="modal-footer">
-                        <button type="button" class="btn btn-primary"
-                            id="confirmContinueBtn1">
-                            Continue
-                        </button>
-                        <button type="button" class="btn btn-primary" data-bs-dismiss="modal"
-                            id="confirmOkBtn2">
-                            Ok
-                        </button>
+                        <button type="button" class="btn btn-light-secondary" data-bs-dismiss="modal">Close</button>
+                        <button type="button" class="btn btn-primary ml-1" id="confirmContinueBtn1">Select Contractor</button>
+                         <button type="button" class="btn btn-primary ml-1" id="confirmOkBtn2" data-bs-dismiss="modal">Ok</button>
                     </div>
                 </div>
             </div>
@@ -137,13 +175,13 @@ Plans
 
 @push('scripts')
 <script>
+    let selectedPlanId = null;
+    let selectedForm = null;
+
     function initializePlanPageScripts() {
-        var totalContractor = {{ $totalContractor }};
-        var stripeEnable = {{ $stripeEnable ?? 0 }};
-        var unlimitedContractors = {{ $sessionUser->unlimited_conractors ? 'true' : 'false' }};
-        
-        let selectedForm = null;
-        let selectedPlanId = null; // This is the selectedPlanId you want to use
+        let unlimitedContractors = {{ (int)($sessionUser->unlimited_conractors ?? 0) }};
+        let totalContractor = {{ (int)$totalContractor }};
+        let stripeEnable = {{ (int)$stripeEnable }};
 
         $('.plan-form').off('submit').on('submit', function (e) {
             e.preventDefault();
@@ -160,10 +198,10 @@ Plans
                 let planId = parseInt($(this).find('input[name="plan_id"]').val());
                 let planTitle = $(this).closest('.card').find('.card-title').text().trim();
                 
-                // if ((planId === 3 || planTitle.toLowerCase() === 'premium')) {
-                //     this.submit(); // submit the form directly
-                //     return;
-                // }
+                if (planId === 4 || planTitle.toLowerCase() === 'standard') {
+                    this.submit();
+                    return;
+                }
                 if (!unlimitedContractors && totalContractor > contractorLimit) {
                     selectedForm = $(this);
                     selectedPlanId = $(this).find('input[name="plan_id"]').val(); 
@@ -180,9 +218,8 @@ Plans
             this.submit();
         });
 
-        // This is the correct listener that has access to selectedPlanId
         $('#confirmContinueBtn1').off('click').on('click', function () {
-            if (selectedPlanId) { // selectedPlanId is defined in this scope/closure
+            if (selectedPlanId) {
                 $('#contractorLimitModal').modal('hide');
                 app.showModalView(`company/contractor_list/${selectedPlanId}`);
             }

@@ -8,6 +8,7 @@ use App\Models\Subscription;
 use App\Models\Notification;
 use App\Services\AuthService;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Validator;
 
@@ -102,7 +103,6 @@ class AccountService
     {
 
         $general = new General();
-        $affiliateId = null;
 
         if ($general->rateLimit('register')) {
             return ['status' => 0, 'message' => 'Too many attempts, please try again later.'];
@@ -142,29 +142,6 @@ class AccountService
         $ip = $general->getClientIp();
         $ipInfo = $general->getIpInfo($ip);
         
-        $affiliateCode = $postData['ref'] ?? null;
-        // // If affiliate code exists
-        if ($affiliateCode) {
-            // Find the affiliate by code
-            $affiliate = User::where('affiliate_code', $affiliateCode)
-                        ->where(function ($q) {
-                        $q->where('type', 3) // affiliate user
-                          ->orWhere(function ($q2) {
-                              $q2->where('type', 2)
-                                 ->where('is_affiliate', 1);
-                        })
-                        ->orWhere(function ($q3) {
-                              $q3->where('type', 1)
-                                 ->where('is_affiliate', 1);
-                         });
-
-                })
-                ->first();
-            if ($affiliate) {
-                $affiliateId = $affiliate->id;
-            }
-        }
-        
         $userObj = new User();
         $service = new AuthService();
         $user = $userObj->create([
@@ -174,10 +151,8 @@ class AccountService
             'password' => (new AuthService())->encryptPassword($postData['password']),
             'country' => isset($ipInfo->country_name) ? $ipInfo->country_name : '',
             'timezone' => config('app.timezone'),
-            'affiliate_code' => $affiliateCode, // Save affiliate code in company record
             'data'=>$userObj->setData('registered_ip',$ip)
         ]);
-        $user->affiliate_code = base64_encode($user->id);
         $user->save();
         
         // Save default required documents for this newly registered company.
@@ -190,25 +165,8 @@ class AccountService
             ]
         );
         
-        if ($affiliateId) {
-            AffiliateReferral::create([
-                'referrals_id' => $affiliateId,       // Affiliate user ID
-                'referrals_user_id' => $user->id,     // Newly registered company ID
-                'status' => 0,                        // 0 = incomplete
-                 'created_at' => time(),                    // Unix timestamp
-                 'updated_at' => time(),                    // Unix timestamp
-            ]);
-        }
-        
         (new Log())->add($user->id, 3);
         (new Notification())->registerEntry($user->id);
-        
-        $subscriptionModel = new Subscription();
-        $subscriptionModel->user_id = $user->id;
-        $subscriptionModel->status = 'active';
-        $subscriptionModel->expired_at = date('Y-m-d H:i:s', strtotime($user->created_at . ' +14 days'));
-
-        $subscriptionModel->save();
 
         if (config('setting.user_email_verify')) {
             (new \App\Services\TfaService())->sendOTP($user, $template = 'register_otp');

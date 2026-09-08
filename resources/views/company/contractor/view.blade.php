@@ -105,17 +105,18 @@ Contractor View
             
           <!-- Buttons -->
           <div class="d-flex mt-3">
-
+            @if($sessionUser->hasPermission('company/contractor/update'))
             <a href="company/contractor/update?id={{ $_GET['id'] }}" class="btn btn-primary me-3 pjax">Edit</a>
-            
             <button onclick="app.confirmStatusAction(this);" data-action="company/contractor/change_status?id={{ $_GET['id'] }}" class="btn @if($model->status ==0) btn-success @else btn-danger @endif me-3">@if($model->status == 0) Set as active @else Set as inactive @endif</button>
-            
-           
-                <a href="{{ route('company/login-as-contractor', ['id' => $_GET['id']]) }}" class="btn btn-primary me-3">Login as Contractor</a>
-          
-                
+            @endif
+
+            @if($sessionUser->hasPermission('company/login-as-contractor'))
+            <a href="{{ route('company/login-as-contractor', ['id' => $_GET['id']]) }}" class="btn btn-primary me-3">Login as Contractor</a>
+            @endif
+
+            @if($sessionUser->hasPermission('company/contractor/document/send-remindermail'))
             <button class="btn btn-secondary" onclick="app.showModalView('{{ route('company/contractor/document/send-remindermail', ['id' => $_GET['id'] ]) }}')">Send Mail</button>
-                
+            @endif
           </div>
         </div>
         
@@ -144,6 +145,7 @@ Contractor View
   </div>
 </div>
 
+@if($sessionUser->hasPermission('company/contractor/document'))
 <section class="section">
         <div class="card">
             <div class="card-header justify-content-between d-flex align-items-center flex-wrap gap-2 pb-2">
@@ -152,7 +154,7 @@ Contractor View
                 </h5>
                 <!--<a href="{{route('admin/document/create',['id'=>$model->id])}}" class="btn btn-primary d-sm-inline-block d-none pjax" style="float: inline-end;">Create</a>-->
                    <div class="d-flex flex-wrap flex-wrap gap-2 center-md">
-                 
+                  
                         <div class="form-group">    
                             <label class="body" for="startDateExp">Select Date</label>
                               <div class="form-group mb-0 position-relative has-icon-right">
@@ -200,7 +202,7 @@ Contractor View
                             <th>Status</th>
                             <th>Upload Date</th>
                             <th>Expiration Date</th>
-                             @if($sessionUser->hasPermission('admin/document/view') || $sessionUser->hasPermission('admin/document/change_status') || $sessionUser->hasPermission('admin/contractor/document/send-remindermail'))
+                             @if($sessionUser->hasPermission(['company/document/view', 'company/document/change_status', 'company/contractor/document/send-remindermail']))
                             <th>Actions</th>
                             @endif
                             </tr>
@@ -209,6 +211,7 @@ Contractor View
             </div>
         </div>
 </section>
+@endif
 
 
 @if($userAccountModel)
@@ -331,9 +334,9 @@ function tableFilterList(){
         
 documentReady(function() {
     const hasUpdatePermission = {!! json_encode(
-        $sessionUser->hasPermission('admin/document/view') ||
-        $sessionUser->hasPermission('admin/document/change_status') ||
-        $sessionUser->hasPermission('admin/contractor/document/send-remindermail')
+        $sessionUser->hasPermission('company/document/view') ||
+        $sessionUser->hasPermission('company/document/change_status') ||
+        $sessionUser->hasPermission('company/contractor/document/send-remindermail')
     ) !!};
     
     datatableObj = $('#data-table').DataTable({

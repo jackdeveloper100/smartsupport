@@ -13,7 +13,7 @@
 
             <div class="col-md-12 mb-3">
 
-                <label class="form-label fw-semibold">Requesting on behalf of <strong>{{ $user->company_name }}</strong></label>
+                <label class="form-label fw-semibold">Requesting on behalf of <strong>{{ $user->company_name ?: (trim($user->first_name . ' ' . $user->last_name) ?: 'Company Account') }}</strong></label>
                 <input type="hidden" name="representative_of" value="{{ $user->id  }}">
             </div>
 

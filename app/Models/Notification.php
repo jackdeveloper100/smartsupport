@@ -155,7 +155,7 @@ class Notification extends Model
         
         $notificationData = Notification::where('notification.type',0)
                                         ->leftjoin('user','user.id','=','notification.user_id')
-                                        ->where('user.company_id',auth()->id())
+                                        ->where('user.company_id', auth()->user()->getCompanyOwnerId())
                                         ->orderBy('notification.created_at','desc')
                                         ->skip($limit)
                                         ->take(10)->get();
@@ -269,7 +269,7 @@ class Notification extends Model
         $result = Notification::where('notification.type',0)
                                 ->where('notification.is_read',0)
                                 ->leftjoin('user','user.id','=','notification.user_id')
-                                ->where('user.company_id',auth()->id())
+                                ->where('user.company_id', auth()->user()->getCompanyOwnerId())
                                 ->count();
         return $result;
     }
@@ -277,7 +277,7 @@ class Notification extends Model
      public function getLatestNotificationCompany(){
         $result = Notification::orderBy('notification.created_at','desc')
                                 ->leftjoin('user','user.id', '=','notification.user_id')
-                                ->where('user.company_id',auth()->id())
+                                ->where('user.company_id', auth()->user()->getCompanyOwnerId())
                                 ->where('notification.type',0)
                                 ->where('notification.is_read',0)
                                 ->limit(2)

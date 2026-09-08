@@ -18,49 +18,47 @@ use App\Helpers\DocumentHelper;
 class ReportController extends Controller
 {
     public function index(){
-        
         $user = auth()->user();
-        $subscriptionData = Subscription::where('user_id',$user->id)->first();
-        if(isset($subscriptionData->status) && $subscriptionData->status == 'active' || $user->unlimited_conractors == 1){
-            return view('company/report/index');
-        }else{
-            return redirect()->route('company/plan')->with('error', 'Your plan was expired, please upgrade your plan');
+        $redirect = $user ? $user->checkCompanyPlanAccess() : redirect('login');
+        if ($redirect) {
+            return $redirect;
         }
+        return view('company/report/index');
     }
     
     public function list(Request $request){
-        $authId = auth()->id();
+        $authId = auth()->user()->getCompanyOwnerId();
         return response()->json((new User())->reportList($request->all(),$authId));
     }
     
     
     public function exportIndex(){
         $user = auth()->user();
-        $subscriptionData = Subscription::where('user_id',$user->id)->first();
-        $contractorList = User::where('company_id',$user->id)->get();
-        if(isset($subscriptionData->status)  &&  $subscriptionData->status == 'active' || $user->unlimited_conractors == 1){
-            return view('company/export_documents/index',compact('contractorList'));
-        }else{
-            return redirect()->route('company/plan')->with('error', 'Your plan was expired, please upgrade your plan');
+        $redirect = $user ? $user->checkCompanyPlanAccess() : redirect('login');
+        if ($redirect) {
+            return $redirect;
         }
+        $effectiveCompanyId = $user->getCompanyOwnerId();
+        $contractorList = User::where('company_id', $effectiveCompanyId)->get();
+        return view('company/export_documents/index',compact('contractorList'));
     }
     
     
     public function ExportDocuments(Request $request)
     {
         $sessionUser = auth()->user();
+        $effectiveCompanyId = $sessionUser->getCompanyOwnerId();
         $contractorStatus = $request->status;
         $docStatus = $request->docStatus;
         $contractorId = $request->contractorId;
     
-        $allowedDocTypeIds = DocumentHelper::getAllowedVisibleDocTypeIds($sessionUser->id);
-    
+        $allowedDocTypeIds = DocumentHelper::getAllowedVisibleDocTypeIds($effectiveCompanyId);
         if ($allowedDocTypeIds->isEmpty()) {
-            return response()->json(['warning' => 'No allowed documents configured for export'], 404);
+            return response()->json(['error' => 'No allowed documents configured for export'], 404);
         }
     
         // Get contractors based on filters
-        $contractorQuery = User::where('company_id', $sessionUser->id);
+        $contractorQuery = User::where('company_id', $effectiveCompanyId);
     
         if ($contractorStatus !== null && $contractorStatus !== '') {
             $contractorQuery->where('status', $contractorStatus);
@@ -173,7 +171,7 @@ class ReportController extends Controller
     $status = $request->status;
     $docStatus = $request->docStatus;
     $exportType = $request->type;
-    $companyId = auth()->id();
+    $companyId = auth()->user()->getCompanyOwnerId();
     $allowedDocTypeIds = DocumentHelper::getAllowedVisibleDocTypeIds($companyId);
 
     

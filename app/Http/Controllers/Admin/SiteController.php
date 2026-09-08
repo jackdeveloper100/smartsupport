@@ -65,11 +65,14 @@ class SiteController extends Controller
             
             $documentTypeData = DocumentHelper::getAdminAllowedDocumentTypes();
             //$documentTypeData = DocumentType::all();
-            $company = User::where('type',2)->get();
+            $companyQuery = function($q) {
+                $q->whereNull('company_id')->orWhere('company_id', 0);
+            };
+            $company = User::where('type',2)->where($companyQuery)->get();
             
-            $totalCompany = User::where('type',2)->count();
-            $activeCompany = User::where('type',2)->where('status',1)->count();
-            $inactiveCompany = User::where('type',2)->where('status',0)->count();
+            $totalCompany = User::where('type',2)->where($companyQuery)->count();
+            $activeCompany = User::where('type',2)->where($companyQuery)->where('status',1)->count();
+            $inactiveCompany = User::where('type',2)->where($companyQuery)->where('status',0)->count();
             
             // $totalPayments = $this->getTotalBalance();
 

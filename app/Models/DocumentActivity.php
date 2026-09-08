@@ -81,10 +81,9 @@ class DocumentActivity extends Model
                    $subQuery->select(DB::raw(1))
                        ->from('company_allowed_documents as cad')
                        ->whereColumn('cad.company_id', 'user.company_id')
-                       ->where(function ($allowed) {
-                           $allowed->whereRaw("JSON_VALID(cad.document_type_id) AND (JSON_CONTAINS(cad.document_type_id, CONCAT(CHAR(34), CAST(document.type AS CHAR), CHAR(34))) OR JSON_CONTAINS(cad.document_type_id, CAST(document.type AS UNSIGNED)))")
-                               ->orWhereRaw("cad.document_type_id = CAST(document.type AS CHAR)");
-                       });
+                        ->where(function ($allowed) {
+                            $allowed->whereRaw("(JSON_VALID(cad.document_type_id) AND (JSON_CONTAINS(cad.document_type_id, CAST(document.type AS JSON)) OR JSON_CONTAINS(cad.document_type_id, JSON_QUOTE(CAST(document.type AS CHAR))))) OR FIND_IN_SET(CAST(document.type AS CHAR), REPLACE(REPLACE(REPLACE(REPLACE(cad.document_type_id, '[', ''), ']', ''), '\"', ''), ' ', '')) > 0 OR cad.document_type_id = CAST(document.type AS CHAR)");
+                        });
                })
                ->select("{$this->table}.*");
        
@@ -101,46 +100,45 @@ class DocumentActivity extends Model
            $result = (new Pagination())->getDataTable($query, $postData);
        
            foreach ($result['data'] as $key => $row) {
-            //   dd(Carbon::parse($row->created_at)->format('d M, Y'));
-            //   $result['data'][$key]->created_at = Carbon::parse($row->created_at)->format('d M, Y');
-               $result['data'][$key]->created_at = Carbon::createFromTimestamp($row->created_at)->format('d M, Y');
+             //   dd(Carbon::parse($row->created_at)->format('d M, Y'));
+             //   $result['data'][$key]->created_at = Carbon::parse($row->created_at)->format('d M, Y');
+                $result['data'][$key]->created_at = Carbon::createFromTimestamp($row->created_at)->format('d M, Y');
 
-           }
-       
-           return $result;
-       }
-       
-
-    public function listOfDocumentActivityAdmin($postData,$id){
-        $query = DB::table($this->table)
-            ->leftJoin('document', 'document.id', '=', "{$this->table}.document_id")
-            ->leftJoin('user', 'user.id', '=', "{$this->table}.user_id")
-            ->where("{$this->table}.user_id", $id)
-            ->whereNotNull('document.type')
-            ->whereExists(function ($subQuery) {
-                $subQuery->select(DB::raw(1))
-                    ->from('company_allowed_documents as cad')
-                    ->whereColumn('cad.company_id', 'user.company_id')
-                    ->where(function ($allowed) {
-                        $allowed->whereRaw("JSON_VALID(cad.document_type_id) AND (JSON_CONTAINS(cad.document_type_id, CONCAT(CHAR(34), CAST(document.type AS CHAR), CHAR(34))) OR JSON_CONTAINS(cad.document_type_id, CAST(document.type AS UNSIGNED)))")
-                            ->orWhereRaw("cad.document_type_id = CAST(document.type AS CHAR)");
-                    });
-            })
-            ->select("{$this->table}.*");
-        $searchText = $postData['search']['value'] ?? '';
-        if (strlen($searchText) > 2) {
-            $query->where(function ($q) use ($searchText) {
-                $q->where('admin_description', 'like', '%' . $searchText . '%'); 
-            });
+            }
+        
+            return $result;
         }
-        $result = (new Pagination())->getDataTable($query, $postData);
-          foreach ($result['data'] as $key => $row) {
-            // $result['data'][$key]->created_at = Carbon::parse($row->created_at)->format('d M, Y');
-            $result['data'][$key]->created_at = Carbon::createFromTimestamp($row->created_at)->format('d M, Y');
-        }
+        
 
-        return $result;
-    }
+     public function listOfDocumentActivityAdmin($postData,$id){
+         $query = DB::table($this->table)
+             ->leftJoin('document', 'document.id', '=', "{$this->table}.document_id")
+             ->leftJoin('user', 'user.id', '=', "{$this->table}.user_id")
+             ->where("{$this->table}.user_id", $id)
+             ->whereNotNull('document.type')
+             ->whereExists(function ($subQuery) {
+                 $subQuery->select(DB::raw(1))
+                     ->from('company_allowed_documents as cad')
+                     ->whereColumn('cad.company_id', 'user.company_id')
+                     ->where(function ($allowed) {
+                         $allowed->whereRaw("(JSON_VALID(cad.document_type_id) AND (JSON_CONTAINS(cad.document_type_id, CAST(document.type AS JSON)) OR JSON_CONTAINS(cad.document_type_id, JSON_QUOTE(CAST(document.type AS CHAR))))) OR FIND_IN_SET(CAST(document.type AS CHAR), REPLACE(REPLACE(REPLACE(REPLACE(cad.document_type_id, '[', ''), ']', ''), '\"', ''), ' ', '')) > 0 OR cad.document_type_id = CAST(document.type AS CHAR)");
+                     });
+             })
+             ->select("{$this->table}.*");
+         $searchText = $postData['search']['value'] ?? '';
+         if (strlen($searchText) > 2) {
+             $query->where(function ($q) use ($searchText) {
+                 $q->where('admin_description', 'like', '%' . $searchText . '%'); 
+             });
+         }
+         $result = (new Pagination())->getDataTable($query, $postData);
+           foreach ($result['data'] as $key => $row) {
+             // $result['data'][$key]->created_at = Carbon::parse($row->created_at)->format('d M, Y');
+             $result['data'][$key]->created_at = Carbon::createFromTimestamp($row->created_at)->format('d M, Y');
+         }
+
+         return $result;
+     }
     
     public function store($type,$id){
         $model = new DocumentActivity();

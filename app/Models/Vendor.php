@@ -59,11 +59,12 @@ class Vendor extends Model
            public function list($postData)
     {
         $sessionUser = auth()->user();
+        $effectiveCompanyId = $sessionUser ? $sessionUser->getCompanyOwnerId() : 0;
         $query = DB::table('w9')
             ->leftJoin('user', 'w9.representative_of', '=', 'user.id')
             ->select('w9.*', 'user.company_name as representative_company_name')
             ->where('request_status', 0)
-            ->where('representative_of', $sessionUser->id);
+            ->where('representative_of', $effectiveCompanyId);
     
         $columns = [
             0 => 'w9.id',
@@ -119,15 +120,19 @@ class Vendor extends Model
                 : 'Unopened';
             $result['data'][$key]->created_at = date('D, M d, Y g:i A', strtotime($row->created_at));
     
-            $result['data'][$key]->action = '
-            <div class="act-btns">
-                <a href="javascript:void(0)" class="text-body pjax tool-btn me-2" onclick="app.showModalView(\'company/request/update?id=' . $row->id . '\')">
+            $actions = '<div class="act-btns">';
+            if ($sessionUser->hasPermission('company/request') || $sessionUser->hasPermission('company/vendor/send_mail')) {
+                $actions .= '<a href="javascript:void(0)" class="text-body pjax tool-btn me-2" onclick="app.showModalView(\'company/request/update?id=' . $row->id . '\')">
                     <i class="bi bi-pencil-square"><span class="tooltip-text">Update</span></i>
-                </a>
-                <button style="border:none; background:none;" onclick="app.confirmW9Action(this);" data-action="company/request/delete-request" data-id="' . $row->id . '" class="text-body tool-btn me-2">
+                </a>';
+            }
+            if ($sessionUser->hasPermission('company/vendor/send_mail')) {
+                $actions .= '<button style="border:none; background:none;" onclick="app.confirmW9Action(this);" data-action="company/request/delete-request" data-id="' . $row->id . '" class="text-body tool-btn me-2">
                     <i class="bi bi-trash-fill"><span class="tooltip-text">Delete</span></i>
-                </button>
-            </div>';
+                </button>';
+            }
+            $actions .= '</div>';
+            $result['data'][$key]->action = $actions;
         }
     
         return $result;
@@ -137,10 +142,11 @@ class Vendor extends Model
         public function receivedList($postData)
     {
         $sessionUser = auth()->user();
+        $effectiveCompanyId = $sessionUser ? $sessionUser->getCompanyOwnerId() : 0;
         $rows = DB::table('w9')
             ->leftJoin('user', 'w9.representative_of', '=', 'user.id')
             ->select('w9.*', 'user.company_name as representative_company_name')
-            ->where('request_status', 1)->where('representative_of',$sessionUser->id)->orderBy('updated_at', 'desc')
+            ->where('request_status', 1)->where('representative_of', $effectiveCompanyId)->orderBy('updated_at', 'desc')
             ->get();
     
         $decrypt = function($value, $key) {
@@ -218,18 +224,20 @@ class Vendor extends Model
                 sprintf(
                         '<a onclick="app.showModalView(\'company/request/audit/%d/\')" class="text-body d-flex justify-content-center align-items-center pjax act-btns tool-btn me-2"><i class="fa fa-clipboard fa-lg"></i> <span class="tooltip-text">View</span></a>',
                         $row->id),
-                'action' => '
-                <div class="act-btns">
-                    <a href="javascript:void(0);" onclick="app.confirmW9ResendAction(this);" data-action="company/w9/request/resend-request" data-id="' . $row->id . '" class="text-body tool-btn me-2">
-                       <i class="fa fa-paper-plane"><span class="tooltip-text mb-2 p-2">Resend W-9 Request</span></i>
-                    </a>
-                    <a href="'.route('fw9/pdf', ['token' => $row->token]).'" 
-                       target="_blank" class="text-body tool-btn me-2">
-                        <i class="fa fa-download"><span class="tooltip-text mb-2 p-2">Download</span></i>
-                    </a>
-                    <button style=" border:none; background:none;" onclick="app.confirmW9ActionRecived(this);" data-action="company/w9/request/delete" data-id="' . $row->id . '" class="text-body tool-btn me-2" ><i class="bi bi-trash-fill"><span class="tooltip-text">Delete</span></i></button>
-                   
-                </div>'
+                'action' => (function() use ($row, $sessionUser) {
+                    $actions = '<div class="act-btns">';
+                    if ($sessionUser->hasPermission('company/w9/request/received')) {
+                        $actions .= '<a href="javascript:void(0);" onclick="app.confirmW9ResendAction(this);" data-action="company/w9/request/resend-request" data-id="' . $row->id . '" class="text-body tool-btn me-2">
+                           <i class="fa fa-paper-plane"><span class="tooltip-text mb-2 p-2">Resend W-9 Request</span></i>
+                        </a>
+                        <a href="'.route('fw9/pdf', ['token' => $row->token]).'" target="_blank" class="text-body tool-btn me-2">
+                            <i class="fa fa-download"><span class="tooltip-text mb-2 p-2">Download</span></i>
+                        </a>
+                        <button style="border:none; background:none;" onclick="app.confirmW9ActionRecived(this);" data-action="company/w9/request/delete" data-id="' . $row->id . '" class="text-body tool-btn me-2"><i class="bi bi-trash-fill"><span class="tooltip-text">Delete</span></i></button>';
+                    }
+                    $actions .= '</div>';
+                    return $actions;
+                })()
             ];
         }
     
