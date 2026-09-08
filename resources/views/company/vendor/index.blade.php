@@ -3,6 +3,7 @@
 @section('title', 'Outstanding W-9 Requests')
 
 @section('content')
+<?php $sessionUser = auth()->user(); ?>
 <div class="container-fluid">
     <div class="row">
         <div class="col-12 col-md-6 order-md-1 order-last">
@@ -21,9 +22,11 @@
     <div class="card shadow-sm">
         <div class="card-header d-flex justify-content-between align-items-center">
             <h5 class="card-title mb-0">Outstanding W-9 Requests</h5>
+            @if($sessionUser->hasPermission('company/vendor/send_mail'))
             <a href="javascript:void(0)" onclick="app.showModalView('{{ route('company/request/create') }}')" class="btn btn-primary">
                 <i class="fa fa-plus"></i> Request W-9
             </a>
+            @endif
         </div>
         <div class="card-body">
             <div class="table-responsive">

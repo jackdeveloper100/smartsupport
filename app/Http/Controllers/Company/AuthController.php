@@ -150,5 +150,76 @@ class AuthController extends Controller
 
         return redirect()->route('company/dashboard')->with('success', 'Welcome Back ');
     }
-   
+
+    /**
+     * Show password setup page for invited team members.
+     */
+    public function setupPassword(Request $request)
+    {
+        $token = $request->query('token');
+        if (empty($token)) {
+            return redirect()->route('login')->with('error', 'This password setup link is invalid or has expired.');
+        }
+
+        $user = User::where('invite_token', $token)->first();
+        if (!$user) {
+            return redirect()->route('login')->with('error', 'This password setup link is invalid or has expired.');
+        }
+
+        // Check if token is older than 7 days (604800 seconds)
+        if (!empty($user->invite_token_created_at) && (time() - $user->invite_token_created_at) > 604800) {
+            return redirect()->route('login')->with('error', 'This password setup link is invalid or has expired.');
+        }
+
+        return view('company/auth/setup_password', compact('user', 'token'));
+    }
+
+    /**
+     * Process password setup form submission.
+     */
+    public function setupPasswordProcess(Request $request)
+    {
+        $rules = [
+            'token' => 'required',
+            'password' => ['required', (new \App\Helpers\General())->passwordType()],
+            'password_confirm' => 'required|same:password',
+        ];
+
+        $validator = \Illuminate\Support\Facades\Validator::make($request->all(), $rules);
+        if ($validator->fails()) {
+            $response = [
+                'status' => 0,
+                'message' => $validator->errors()->first()
+            ];
+            return $request->ajax() 
+                ? response()->json($response) 
+                : redirect()->back()->with('error', $response['message'])->withInput();
+        }
+
+        $user = User::where('invite_token', $request->input('token'))->first();
+        if (!$user) {
+            $response = [
+                'status' => 0,
+                'message' => 'Invalid or expired invitation token.'
+            ];
+            return $request->ajax() 
+                ? response()->json($response) 
+                : redirect()->back()->with('error', $response['message'])->withInput();
+        }
+
+        $user->password = (new AuthService())->encryptPassword($request->input('password'));
+        $user->status = 1; // Mark active
+        $user->email_verified = 1; // Mark email verified (received & clicked token link)
+        $user->invite_token = null;
+        $user->save();
+
+        $response = [
+            'status' => 1,
+            'message' => 'Password set up successfully! You can now log in.',
+            'next' => 'redirect',
+            'url' => route('login')
+        ];
+
+        return $request->ajax() ? response()->json($response) : redirect($response['url'])->with('success', $response['message']);
+    }
 }

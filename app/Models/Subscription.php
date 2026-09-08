@@ -154,6 +154,16 @@ class Subscription extends Model
             return $planDetails->contractor_limit ?? 10;
         }
     }
+
+    public function isLegacyPlan($userId = null){
+        $sub = $userId ? Subscription::where('user_id', $userId)->latest()->first() : $this;
+        return $sub && Plan::isLegacyPlan($sub->plan_id);
+    }
+
+    public function isStandardPlan($userId = null){
+        $sub = $userId ? Subscription::where('user_id', $userId)->latest()->first() : $this;
+        return $sub && Plan::isStandardPlan($sub->plan_id);
+    }
     
     public function getCompanyName($userId){
         $result = User::where('id',$userId)->first();
@@ -184,7 +194,7 @@ class Subscription extends Model
         }elseif($status == 'free'){
             return '<span class="badge bg-primary">Free</span>';
         }
-        
+        return '<span class="badge bg-secondary">Inactive</span>';
     }   
     
 

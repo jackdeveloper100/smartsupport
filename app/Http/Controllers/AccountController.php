@@ -29,7 +29,13 @@ class AccountController extends Controller
      */
     public function register()
     {
-        $modelList = User::where('type',2)->where('status',1)->get();
+        $modelList = User::where('type', 2)
+            ->where('status', 1)
+            ->where(function($q) {
+                $q->whereNull('company_id')
+                  ->orWhere('company_id', 0);
+            })
+            ->get();
 
         $model = [];
         foreach($modelList as $data){

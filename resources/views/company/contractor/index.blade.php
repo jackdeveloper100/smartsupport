@@ -29,13 +29,17 @@ Contractors
                 </h5>
                 <div class="d-flex flex-wrap flex-wrap gap-2 align-items-end flex-wrap">
                     
+                      @if($sessionUser->hasPermission('company/contractors/export-data'))
                       <a class="btn btn-success d-none" href="#" id="exportData" type="button" data-id="">Export Data</a>
+                      @endif
               
                       <a href="javascript:void(0)" class="btn btn-secondary d-none" type="button" id="sendReminderMail">Send Reminder Email</a>
                  
                       <button class="btn btn-danger d-none" type="button" onclick="app.confirmAction(this);" data-action="company/contractor/delete_multiple" data-id="' . selected_id[] . '"  id="deleteEntreeBtn">Delete Selected</button>
                   
-                    <a href="company/contractor/create" class="btn btn-primary d-sm-inline-block pjax" style="float: inline-end;">Create</a>
+                      @if($sessionUser->hasPermission('company/contractor/create'))
+                      <a href="company/contractor/create" class="btn btn-primary d-sm-inline-block pjax" style="float: inline-end;">Create</a>
+                      @endif
 
                   </div>
                 </div>

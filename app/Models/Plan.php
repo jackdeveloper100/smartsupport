@@ -46,9 +46,20 @@ class Plan extends Model
     
             case 'premium':
                 return 3;
+
+            case 'standard':
+                return 4;
     
             default:
                 return null;
         }
+    }
+
+    public static function isStandardPlan($planId) {
+        return (int)$planId === 4;
+    }
+
+    public static function isLegacyPlan($planId) {
+        return in_array((int)$planId, [1, 2, 3]);
     }
 }

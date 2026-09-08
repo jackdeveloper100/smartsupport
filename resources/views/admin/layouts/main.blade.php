@@ -61,6 +61,8 @@
 
             <script src="theme/static/js/initTheme.js"></script>
 
+            @include('layouts.partials.responsive_sidebar')
+
             @stack('style')
     
             <script>
@@ -528,6 +530,7 @@
 
         <script src="theme/extensions/datatables.net-bs5/js/dataTables.bootstrap5.min.js"></script>
         <script src="assets/js/pjax.js"></script>
+        <script src="assets/js/auth-interceptor.js"></script>
     
             @stack('scripts')
         <script>

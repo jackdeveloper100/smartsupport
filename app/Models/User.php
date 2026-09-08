@@ -113,12 +113,127 @@ class User extends Authenticatable
         return $this->type == 2 ? true : false;
     }
 
+    /**
+     * Get the effective parent Company Owner ID for subscriptions, contractors, and documents.
+     * If user is a sub-user (team member, type = 2) with company_id set, returns parent company_id.
+     * Otherwise returns user's own id.
+     *
+     * @return int
+     */
+    public function getCompanyOwnerId()
+    {
+        if ($this->type == 2 && !empty($this->company_id)) {
+            return (int) $this->company_id;
+        }
+        return (int) $this->id;
+    }
+
+    /**
+     * Check if the company has an active plan or unlimited contractors.
+     * Returns a redirect response if inactive/unsubscribed, or null if access is granted.
+     *
+     * @return \Illuminate\Http\RedirectResponse|null
+     */
+    public function checkCompanyPlanAccess()
+    {
+        $effectiveCompanyId = $this->getCompanyOwnerId();
+        $companyOwner = ($effectiveCompanyId != $this->id) ? User::find($effectiveCompanyId) : $this;
+
+        if (($companyOwner->unlimited_conractors ?? 0) == 1) {
+            return null;
+        }
+
+        $subscriptionData = \App\Models\Subscription::where('user_id', $effectiveCompanyId)->first();
+
+        if ($subscriptionData && $subscriptionData->status === 'active') {
+            return null;
+        }
+
+        if ($subscriptionData) {
+            return redirect()->route('company/plan')->with('error', 'Your plan has expired. Please upgrade your plan to continue.');
+        } else {
+            return redirect()->route('company/plan')->with('info', 'Please purchase a plan to activate your account.');
+        }
+    }
+
+    /**
+     * Get contractor count for a company based on plan rules.
+     * For Standard Plan (ID 4): counts active contractors (type = 1 and status = 1).
+     * For Legacy Plans (IDs 1, 2, 3): counts approved contractors (type = 1 and company_approved_status = 1).
+     *
+     * @param int $companyId
+     * @param int|null $planId
+     * @return int
+     */
+    public static function getContractorCountForPlan($companyId, $planId = null): int
+    {
+        return (int) self::where('company_id', $companyId)
+            ->where('type', 1)
+            ->where('company_approved_status', 1)
+            ->count();
+    }
+
+    /**
+     * Check if a company can add or approve an additional contractor.
+     * Reusable check to prevent limit bypass on form submission or registration approval.
+     *
+     * @param int $companyOwnerId
+     * @return array
+     */
+    public static function canAddContractor($companyOwnerId): array
+    {
+        $companyOwner = self::find($companyOwnerId);
+        if (!$companyOwner) {
+            return ['allowed' => false, 'reason' => 'Company Not Found', 'plan_id' => null, 'available_contractor' => 0, 'contractor_limit' => 0];
+        }
+
+        if (($companyOwner->unlimited_conractors ?? 0) == 1) {
+            return ['allowed' => true, 'reason' => null, 'plan_id' => null, 'available_contractor' => 0, 'contractor_limit' => 'Unlimited'];
+        }
+
+        $contractorLimit = (new Subscription())->getContractorLimit($companyOwnerId);
+        if ($contractorLimit === 'Unlimited') {
+            return ['allowed' => true, 'reason' => null, 'plan_id' => null, 'available_contractor' => 0, 'contractor_limit' => 'Unlimited'];
+        }
+
+        $subscriptionData = Subscription::where('user_id', $companyOwnerId)->first();
+        $planId = $subscriptionData->plan_id ?? null;
+        $totalContractor = self::getContractorCountForPlan($companyOwnerId, $planId);
+        $availableContractor = ((int)$planId === 4) ? 0 : ($companyOwner->available_contractor ?? 0);
+
+        if ($totalContractor < (int)$contractorLimit) {
+            return ['allowed' => true, 'reason' => null, 'plan_id' => $planId, 'available_contractor' => $availableContractor, 'contractor_limit' => $contractorLimit];
+        }
+
+        if ($availableContractor > 0) {
+            return ['allowed' => true, 'reason' => null, 'plan_id' => $planId, 'available_contractor' => $availableContractor, 'contractor_limit' => $contractorLimit];
+        }
+
+        // Check if session has a single-use paid extra slot allowed
+        $allowExtra = session()->get('allow_extra_contractor', false);
+        $availableSession = session()->get('available_contractor', false);
+        if ($allowExtra || $availableSession) {
+            return ['allowed' => true, 'reason' => null, 'plan_id' => $planId, 'available_contractor' => $availableContractor, 'contractor_limit' => $contractorLimit];
+        }
+
+        return [
+            'allowed' => false,
+            'reason' => 'You have reached your contractor limit. Please purchase an additional contractor slot to continue.',
+            'plan_id' => $planId,
+            'available_contractor' => 0,
+            'contractor_limit' => $contractorLimit
+        ];
+    }
+
     public function hasPermission($permission='')
     {
-        if($this->isSuperAdmin()){
+        if ($this->isSuperAdmin()) {
             return true;
         }
-        return (new PermissionService())->hasPermission($permission,$this->permission); 
+        if ((int)$this->type === 2) {
+            return (new \App\Services\CompanyPermissionService())->hasPermission($permission, $this->permission);
+        }
+        return (new PermissionService())->hasPermission($permission, $this->permission); 
     }
 
 
@@ -367,20 +482,28 @@ class User extends Authenticatable
                     <button style="border:none; background:none;" onclick="app.confirmAction(this);" data-action="admin/contractor/delete" data-id="' . $row->id . '" class="text-body tool-btn me-2 ps-0"><i class="bi bi-trash-fill"><span class="tooltip-text">Delete</span></i></button>
                 </div>';
             } elseif ($sessionUser->type == 2) {
-                $actions .= '<div class="act-btns">
-                    <a href="company/contractor/view?id=' . $row->id . '" class="text-body pjax tool-btn me-2"><i class="bi bi-eye-fill"></i></a>
-                    <a href="company/contractor/update?id=' . $row->id . '" class="text-body pjax tool-btn me-2"><i class="bi bi-pencil-square"></i></a>
-                    <button style="border:none; background:none;" onclick="app.confirmAction(this);" data-action="company/contractor/delete" data-id="' . $row->id . '" class="text-body tool-btn me-2 ps-0"><i class="bi bi-trash-fill"></i></button>';
-    
-                if ($row->company_approved_status == 0) {
-                    $actions .= '<a onclick="app.confirmApproveAction(this);" data-action="company/contractor/register-approve" data-id="' . $row->id . '" class="tool-btn me-2"><i class="bi bi-check-circle-fill"></i></a>
-                        <a onclick="app.confirmAction(this);" data-action="company/contractor/register-reject" data-id="' . $row->id . '" class="tool-btn me-2"><i class="bi bi-x-circle-fill"></i></a>';
-                } elseif ($row->company_approved_status == 1) {
-                    $actions .= '<a onclick="app.confirmRejectAction(this);" data-action="company/contractor/register-reject" data-id="' . $row->id . '" class="tool-btn me-2"><i class="bi bi-x-circle-fill"></i></a>';
-                } elseif ($row->company_approved_status == 2) {
-                    $actions .= '<a onclick="app.confirmApproveAction(this);" data-action="company/contractor/register-approve" data-id="' . $row->id . '" class="tool-btn me-2"><i class="bi bi-check-circle-fill"></i></a>';
+                $actions .= '<div class="act-btns">';
+                if ($sessionUser->hasPermission('company/contractor/view')) {
+                    $actions .= '<a href="company/contractor/view?id=' . $row->id . '" class="text-body pjax tool-btn me-2"><i class="bi bi-eye-fill"><span class="tooltip-text">View</span></i></a>';
                 }
-    
+                if ($sessionUser->hasPermission('company/contractor/update')) {
+                    $actions .= '<a href="company/contractor/update?id=' . $row->id . '" class="text-body pjax tool-btn me-2"><i class="bi bi-pencil-square"></i><span class="tooltip-text">Edit</span></i></a>';
+                }
+                if ($sessionUser->hasPermission('company/contractor/delete')) {
+                    $actions .= '<button style="border:none; background:none;" onclick="app.confirmAction(this);" data-action="company/contractor/delete" data-id="' . $row->id . '" class="text-body tool-btn me-2 ps-0"><i class="bi bi-trash-fill"><span class="tooltip-text">Delete</span></i></button>';
+                }
+
+                if ($sessionUser->hasPermission('company/contractor/update')) {
+                    if ($row->company_approved_status == 0) {
+                        $actions .= '<a onclick="app.confirmApproveAction(this);" data-action="company/contractor/register-approve" data-id="' . $row->id . '" class="tool-btn me-2"><i class="bi bi-check-circle-fill"><span class="tooltip-text">Approve</span></i></a>
+                            <a onclick="app.confirmAction(this);" data-action="company/contractor/register-reject" data-id="' . $row->id . '" class="tool-btn me-2"><i class="bi bi-x-circle-fill"><span class="tooltip-text">Reject</span></i></a>';
+                    } elseif ($row->company_approved_status == 1) {
+                        $actions .= '<a onclick="app.confirmRejectAction(this);" data-action="company/contractor/register-reject" data-id="' . $row->id . '" class="tool-btn me-2"><i class="bi bi-x-circle-fill"><span class="tooltip-text">Reject</span></i></a>';
+                    } elseif ($row->company_approved_status == 2) {
+                        $actions .= '<a onclick="app.confirmApproveAction(this);" data-action="company/contractor/register-approve" data-id="' . $row->id . '" class="tool-btn me-2"><i class="bi bi-check-circle-fill"><span class="tooltip-text">Approve</span></i></a>';
+                    }
+                }
+
                 $actions .= '</div>';
             }
             // dd($row);
@@ -439,8 +562,7 @@ class User extends Authenticatable
                 ->from('company_allowed_documents as cad')
                 ->whereColumn('cad.company_id', 'user.company_id')
                 ->where(function ($allowed) {
-                    $allowed->whereRaw("JSON_VALID(cad.document_type_id) AND (JSON_CONTAINS(cad.document_type_id, CONCAT(CHAR(34), CAST(document.type AS CHAR), CHAR(34))) OR JSON_CONTAINS(cad.document_type_id, CAST(document.type AS UNSIGNED)))")
-                        ->orWhereRaw("cad.document_type_id = CAST(document.type AS CHAR)");
+                    $allowed->whereRaw("(JSON_VALID(cad.document_type_id) AND (JSON_CONTAINS(cad.document_type_id, CAST(document.type AS JSON)) OR JSON_CONTAINS(cad.document_type_id, JSON_QUOTE(CAST(document.type AS CHAR))))) OR FIND_IN_SET(CAST(document.type AS CHAR), REPLACE(REPLACE(REPLACE(REPLACE(cad.document_type_id, '[', ''), ']', ''), '\"', ''), ' ', '')) > 0 OR cad.document_type_id = CAST(document.type AS CHAR)");
                 });
         });
 
@@ -525,7 +647,7 @@ class User extends Authenticatable
     $query = DB::table('user')
         ->select(
             'user.*',
-            'subscription.user_id',
+            'subscription.user_id as sub_user_id',
             'subscription.plan_id',
             'subscription.expired_at',
             'subscription.status as sub_status',
@@ -533,6 +655,10 @@ class User extends Authenticatable
             'plan.amount'
         )
         ->where('user.type', 2)
+        ->where(function($q) {
+            $q->whereNull('user.company_id')
+              ->orWhere('user.company_id', 0);
+        })
         ->leftJoin('subscription', 'user.id', '=', 'subscription.user_id')
         ->leftJoin('plan', 'plan.id', '=', 'subscription.plan_id');
 
@@ -612,11 +738,16 @@ class User extends Authenticatable
             $planAmount = 'Free';
             $expiredAt = 'Never Expired';
             $planBadge = (new Subscription())->getStatusBadge('free');
-        } else {
+        } elseif (!empty($row->sub_user_id)) {
             $planTitle = $row->title ?? 'Trial';
             $planAmount = $row->amount ? '$' . $row->amount : 'Trial';
-            $expiredAt = date(config('setting.date_format'), strtotime($row->expired_at));
+            $expiredAt = !empty($row->expired_at) ? date(config('setting.date_format'), strtotime($row->expired_at)) : 'N/A';
             $planBadge = (new Subscription())->getStatusBadge($row->sub_status);
+        } else {
+            $planTitle = 'No Plan';
+            $planAmount = 'N/A';
+            $expiredAt = 'N/A';
+            $planBadge = '<span class="badge bg-secondary">Inactive</span>';
         }
         $statusBadge = $userObj->getStatusBadge($row->status);
         $createdAtFormatted = date(config('setting.date_format'), $row->created_at);
@@ -657,7 +788,7 @@ class User extends Authenticatable
     // Return your result as expected by DataTables
     $result = [
         "draw" => intval($postData['draw']),
-        "recordsTotal" => DB::table('user')->where('user.type', 2)->count(), // total unfiltered count
+        "recordsTotal" => DB::table('user')->where('user.type', 2)->where(function($q) { $q->whereNull('user.company_id')->orWhere('user.company_id', 0); })->count(), // total unfiltered count
         "recordsFiltered" => $totalFiltered,
         "data" => $data,
     ];
@@ -854,7 +985,7 @@ class User extends Authenticatable
         
         if(!$id){
               (new General())->sendEmail($postData['email'], 'user_invite', [
-                'url' => "https://app2.easyw9.com/admin/login",
+                'url' => url('admin/login'),
                 'name' => $postData['first_name'].' '.$postData['last_name'],
                 'email' => $postData['email'],
                 'password' => $postData['password'],
@@ -917,6 +1048,20 @@ class User extends Authenticatable
         $endDate = null;
         if(!$id){
             if($sessionUser->type == 2) {
+                $companyOwnerId = $sessionUser->getCompanyOwnerId();
+                $companyOwner = User::find($companyOwnerId) ?: $sessionUser;
+
+                // Re-verify limit at submission time to prevent multi-tab & race condition bypasses
+                $checkLimit = self::canAddContractor($companyOwnerId);
+                if (!$checkLimit['allowed']) {
+                    $priceLabel = ($checkLimit['plan_id'] == 4) ? 'Pay $2' : 'Pay $15';
+                    $payNow = '<a href="' . route('company/contractors/add-extra') . '" >' . $priceLabel . '</a>';
+                    return [
+                        'status' => 0,
+                        'message' => 'You have reached your contractor limit. To create an additional contractor, please ' . $payNow,
+                    ];
+                }
+
                 $allowExtra = session()->get('allow_extra_contractor', false);
                 // dd($allowExtra);
                 $availableContractor = session()->get('available_contractor',false);
@@ -927,16 +1072,20 @@ class User extends Authenticatable
 
                 if(isset($allowExtra) && $allowExtra !== null && $allowExtra != ''){
                     $isAddOn = 1;
-                    $sessionUser->available_contractor -= 1;
-                    $sessionUser->save();
+                    if ($companyOwner && $companyOwner->available_contractor > 0) {
+                        $companyOwner->available_contractor -= 1;
+                        $companyOwner->save();
+                    }
                     session()->forget('allow_extra_contractor');
                     session()->forget('end_date');
                 }
                 
                 if(isset($availableContractor) && $availableContractor !== null && $availableContractor != ''){
                     $isAddOn = 1;
-                    $sessionUser->available_contractor -= 1;
-                    $sessionUser->save();
+                    if ($companyOwner && $companyOwner->available_contractor > 0) {
+                        $companyOwner->available_contractor -= 1;
+                        $companyOwner->save();
+                    }
                     session()->forget('available_contractor');
                 }
             }
@@ -987,7 +1136,7 @@ class User extends Authenticatable
         
         if(!$id){
           (new General())->sendEmail($postData['email'], 'contractor_invite', [
-                'url' => "https://app2.easyw9.com/login",
+                'url' => url('login'),
                 'name' => $postData['first_name'].' '.$postData['last_name'],
                 'email' => $postData['email'],
                 'password' => $postData['password'],
@@ -1126,7 +1275,7 @@ class User extends Authenticatable
     
         }
         
-        if(!$id){
+        if(!$id && isset($postData['unlimited_conractors']) && $postData['unlimited_conractors'] == 1){
             $subscriptionModel = new Subscription();
             $subscriptionModel->user_id = $model->id;
             $subscriptionModel->status = 'active';
@@ -1138,14 +1287,14 @@ class User extends Authenticatable
         if(!$id){
             if(isset($postData['unlimited_conractors']) && $postData['unlimited_conractors'] == 1 ){
                 (new General())->sendEmail($postData['email'], 'company_invite_with_free_contractor', [
-                    'url' => "https://app2.easyw9.com/login",
+                    'url' => url('login'),
                     'company_name' => $postData['company_name'],
                     'email' => $postData['email'],
                     'password' => $postData['password'],
                 ]);
             }else{
                 (new General())->sendEmail($postData['email'], 'company_invite', [
-                    'url' => "https://app2.easyw9.com/login",
+                    'url' => url('login'),
                     'company_name' => $postData['company_name'],
                     'email' => $postData['email'],
                     'password' => $postData['password'],
@@ -1297,6 +1446,9 @@ class User extends Authenticatable
         }
         $company = User::find($companyId);
         if($company){
+            if ($company->type == 2 && !empty($company->company_id)) {
+                $company = User::find($company->company_id) ?: $company;
+            }
             $subscriptionData = Subscription::where('user_id',$company->id)->first();
             if($subscriptionData){
                 return $subscriptionData->plan_id;  
@@ -1310,6 +1462,9 @@ class User extends Authenticatable
         }
         $company = User::find($companyId);
         if($company){
+            if ($company->type == 2 && !empty($company->company_id)) {
+                $company = User::find($company->company_id) ?: $company;
+            }
             return $company->unlimited_conractors;
         }
     }
@@ -1320,6 +1475,9 @@ class User extends Authenticatable
         }
         $company = User::find($companyId);
         if($company){
+            if ($company->type == 2 && !empty($company->company_id)) {
+                $company = User::find($company->company_id) ?: $company;
+            }
             return $company->email_reminders;
         }
     }

@@ -32,106 +32,78 @@ class AccountController extends Controller
      * @return \Illuminate\Http\JsonResponse
      */
     public function save(Request $request)
-       {
-            $user = auth()->user();
-        
+    {
+        $user = auth()->user();
+        $isSubUser = ($user->type == 2 && !empty($user->company_id));
+
+        if ($isSubUser) {
+            // Team Member Personal Profile Update
             $rules = [
-                'company_name' => 'required|string|max:255',
-                'email'        => 'required|email',
-          
+                'first_name' => 'required|string|max:255',
+                'last_name'  => 'nullable|string|max:255',
+                'email'      => 'required|email|max:255|unique:user,email,' . $user->id,
             ];
-        
+
             $validator = Validator::make($request->all(), $rules);
-        
             if ($validator->fails()) {
                 return response()->json([
                     'status'  => 0,
                     'message' => $validator->errors()->first()
                 ]);
             }
-        
+
+            $general = new General();
+            $data = [
+                'first_name' => $request->first_name,
+                'last_name'  => $request->last_name ?? '',
+                'email'      => $request->email,
+            ];
+
+            if ($request->hasFile('image') && $request->file('image')->isValid()) {
+                $uploadResult = $general->uploadFile($request->file('image'), 'profile');
+                if (!$uploadResult['status']) {
+                    return response()->json($uploadResult);
+                }
+                if ($uploadResult['file_name']) {
+                    if ($user->image) {
+                        $general->deleteFile($user->image, 'profile');
+                    }
+                    $data['image'] = $uploadResult['file_name'];
+                }
+            }
+
+            $user->update($data);
+        } else {
+            // Main Company Owner Profile Update
+            $rules = [
+                'company_name' => 'required|string|max:255',
+                'email'        => 'required|email|max:255|unique:user,email,' . $user->id,
+            ];
+
+            $validator = Validator::make($request->all(), $rules);
+            if ($validator->fails()) {
+                return response()->json([
+                    'status'  => 0,
+                    'message' => $validator->errors()->first()
+                ]);
+            }
+
             $data = [
                 'company_name'    => $request->company_name,
                 'email'           => $request->email,
                 'email_reminders' => $request->has('email_reminders') ? 1 : 0,
-                'is_affiliate'    => $request->has('is_affiliate') ? 1 : 0,
                 'is_company_email_enabled' => $request->has('is_company_email_enabled') ? 1 : 0,
                 'is_contractor_email_enabled' => $request->has('is_contractor_email_enabled') ? 1 : 0,
-               
-                
             ];
 
             $user->update($data);
-        
-            return response()->json([
-                'status'  => 1,
-                'message' => 'Account Updated Successfully',
-                'next'    => 'reload'
-            ]);
-        }
-    
-    public function affiliate(Request $request)
-        {
-            $model = auth()->user();
-            return view('company/account/affiliate', compact('model'));
-        }
-    public function affiliateSave(Request $request)
-    {
-        $user = auth()->user();
-    
-        $rules = [
-         
-            'first_name'               => 'required|string|max:255',
-            'last_name' => 'nullable|string|max:100',
-            'affiliate_company_name' => 'nullable|string|max:255',
-            'affiliate_website' => 'nullable|url|max:255',
-            'affiliate_role_type' => 'required|string',
-            'affiliate_role_other' => 'nullable|string|max:255|required_if:affiliate_role_type,other',
-            'affiliate_referral_description' => 'nullable|string|max:255',
-            'affiliate_reach_volume' => 'required|string',
-            'affiliate_referral_methods' => 'nullable|array',
-            'affiliate_referral_methods.*' => 'string',
-            'affiliate_commission_consent' => 'required|in:1,0',
-            'affiliate_motivation' => 'nullable|string|max:255',
-            'affiliate_notes' => 'nullable|string|max:255',
-
-        ];
-
-        $validator = Validator::make($request->all(), $rules);
-        if ($validator->fails()) {
-            return response()->json([
-                'status'  => 0,
-                'message' => $validator->errors()->first()
-            ]);
         }
 
-        if (empty($user->affiliate_code)) {
-            $user->affiliate_code = base64_encode($user->id); 
-        } 
-        
-        $data = [
-               'is_affiliate' =>1,
-            'first_name'                      => $request->first_name,
-            'last_name'                       => $request->last_name,
-            'affiliate_company_name'          => $request->affiliate_company_name,
-            'affiliate_website'               => $request->affiliate_website,
-            'affiliate_role_type'             => $request->affiliate_role_type,
-            'affiliate_role_other'            => $request->affiliate_role_other,
-            'affiliate_referral_description'  => $request->affiliate_referral_description,
-            'affiliate_reach_volume'           => $request->affiliate_reach_volume,
-            'affiliate_commission_consent'     => $request->affiliate_commission_consent,
-            'affiliate_motivation'             => $request->affiliate_motivation,
-            'affiliate_notes'                  => $request->affiliate_notes,
-            'affiliate_terms_accepted'         => 1,
-            'affiliate_referral_methods'       => $request->affiliate_referral_methods
-                                                    ? json_encode($request->affiliate_referral_methods)
-                                                    : null,
-        ];
-        $data['affiliate_code'] = base64_encode($user->id);
-        $user->update($data);
-
-        return redirect()->route('company/account/update')->with('success', 'Affiliate details Apply successfully');
-
+        return response()->json([
+            'status'  => 1,
+            'message' => 'Profile Updated Successfully',
+            'next'    => 'reload'
+        ]);
     }
     /**
      * Display the change password form.

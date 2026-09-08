@@ -15,19 +15,22 @@
         $sessionUser = false;
         if (!auth()->guest()) {
             $sessionUser = auth()->user();
+            $effectiveCompanyId = $sessionUser->getCompanyOwnerId();
+            $companyOwner = ($effectiveCompanyId != $sessionUser->id) ? \App\Models\User::find($effectiveCompanyId) : $sessionUser;
+
             $subscriptionModel = new \App\Models\Subscription();
-            $subscriptionData = $subscriptionModel->where('user_id',$sessionUser->id)->first();
+            $subscriptionData = $subscriptionModel->where('user_id', $effectiveCompanyId)->first();
             $subscriptionStatus = $subscriptionData->status ?? null;
             
             $isValid = false;
-            if($sessionUser->unlimited_conractors == 1){
+            if (($companyOwner->unlimited_conractors ?? 0) == 1) {
                 $isValid = true;
-            }else{
+            } else {
                 $userModel = new \App\Models\User();
-                $companyplan = $userModel->getCompanyPlanInfo($sessionUser->id);
+                $companyplan = $userModel->getCompanyPlanInfo($effectiveCompanyId);
                 if ($companyplan == 1 || $companyplan == null || $subscriptionStatus != 'active') {
                     $isValid = false;
-                }else{
+                } else {
                     $isValid = true;
                 }
             }
@@ -74,6 +77,8 @@
             <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.6.2/cropper.min.css" integrity="sha512-UtLOu9C7NuThQhuXXrGwx9Jb/z9zPQJctuAgNUBK3Z6kkSYT9wJ+2+dh6klS+TDBCV9kNPBbAxbVD+vCcfGPaA==" crossorigin="anonymous" referrerpolicy="no-referrer" />
 
             <script src="theme/static/js/initTheme.js"></script>
+
+            @include('layouts.partials.responsive_sidebar')
 
             @stack('style')
     
@@ -142,43 +147,55 @@
                                         @endif
 
                                         
-                                        @if($subscriptionStatus == 'active' || $sessionUser->unlimited_conractors == 1)
+                                        <?php 
+                                            $effectiveOwnerId = $sessionUser->getCompanyOwnerId();
+                                            $companyOwnerModel = ($effectiveOwnerId != $sessionUser->id) ? \App\Models\User::find($effectiveOwnerId) : $sessionUser;
+                                        ?>
+                                        @if(($subscriptionStatus == 'active' || ($companyOwnerModel->unlimited_conractors ?? 0) == 1) && $sessionUser->hasPermission(['company/contractor', 'company/contractors/export-data']))
                                         <li class="sidebar-item  has-sub pjax {{ $general->routeMatchClass(['company/contractor'], 'open') }}">
                                             <a href="javascript:void(0);" class="sidebar-link  pjax">
                                                 <i class="bi bi-person-fill"></i>
                                                         <div data-i18n="Contractors"><span>Contractors</span></div>
                                             </a>
                                              <ul class="submenu active">
-                                               <li class="submenu-item {{ $general->routeMatchClass('company/contractor')}} ">
+                                                @if($sessionUser->hasPermission('company/contractor'))
+                                                <li class="submenu-item {{ $general->routeMatchClass('company/contractor')}} ">
                                                     <a href="{{ route('company/contractor') }}" class="submenu-link pjax sidebar_hide">Contractors</a>
                                                 </li>
+                                                @endif
                                                 
+                                                @if($sessionUser->hasPermission('company/contractors/export-data'))
                                                 <li class="submenu-item {{ $general->routeMatchClass('company/contractors/export-data')}} ">
                                                     <a href="{{ route('company/contractors/export-data') }}" class="submenu-link pjax sidebar_hide">Export Data</a>
                                                 </li>
+                                                @endif
                                             </ul>                                                    
                                         </li>
                                         @endif
                                     
-                                        @if($isValid == true)
-                                        <li class="sidebar-item  has-sub pjax {{ $general->routeMatchClass(['company/request'], 'open') }}">
+                                        @if($isValid == true && $sessionUser->hasPermission(['company/request', 'company/w9/request/received']))
+                                        <li class="sidebar-item  has-sub pjax {{ $general->routeMatchClass(['company/request', 'company/w9/request/received'], 'open') }}">
                                             <a href="javascript:void(0);" class="sidebar-link  pjax">
                                                 <i class="bi bi-person-fill"></i>
                                                         <div data-i18n="Contractors"><span>Vendor W-9s</span></div>
                                             </a>
                                              <ul class="submenu active">
+                                               @if($sessionUser->hasPermission('company/request'))
                                                <li class="submenu-item {{ $general->routeMatchClass('company/request')}} ">
                                                     <a href="{{ route('company/request') }}" class="submenu-link pjax sidebar_hide">Vendor W-9 Requests</a>
                                                 </li>
+                                               @endif
                                                 
-                                                <li class="submenu-item {{ $general->routeMatchClass('company/w9/request/received')}} ">
+                                               @if($sessionUser->hasPermission('company/w9/request/received'))
+                                               <li class="submenu-item {{ $general->routeMatchClass('company/w9/request/received')}} ">
                                                     <a href="{{ route('company/w9/request/received') }}" class="submenu-link pjax sidebar_hide">Vendor W-9s Received</a>
                                                 </li>
+                                               @endif
                                             </ul>                                                    
                                         </li>
                                         @endif    
                                        
-                                         @if($subscriptionStatus == 'active' || $sessionUser->unlimited_conractors == 1)
+                                         @if(($subscriptionStatus == 'active' || ($companyOwnerModel->unlimited_conractors ?? 0) == 1) && $sessionUser->hasPermission('company/report'))
                                         <li class="sidebar-item pjax {{ $general->routeMatchClass(['company/contractor/report']) }}">
                                             <a href="{{ route('company/contractor/report') }}" class="sidebar-link pjax sidebar_hide">
                                             <i class="bi bi-file-earmark-text-fill"></i>
@@ -187,7 +204,16 @@
                                         </li>
                                         @endif
                                         
-                                        @if($sessionUser->unlimited_conractors != 1)
+                                        @if(($subscriptionStatus == 'active' || ($companyOwnerModel->unlimited_conractors ?? 0) == 1) && $sessionUser->hasPermission('company/team-members'))
+                                        <li class="sidebar-item pjax {{ $general->routeMatchClass(['company/team-members', 'company/team-member/create', 'company/team-member/update']) }}">
+                                            <a href="{{ route('company/team-members') }}" class="sidebar-link pjax sidebar_hide">
+                                            <i class="bi bi-people-fill"></i>
+                                            <div data-i18n="Team Members"><span>Team Members</span></div>
+                                            </a>
+                                        </li>
+                                        @endif
+                                        
+                                        @if(($companyOwnerModel->unlimited_conractors ?? 0) != 1 && $sessionUser->hasPermission('company/plan'))
                                         <li class="sidebar-item pjax {{ $general->routeMatchClass(['company/plan']) }}">
                                             <a href="{{ route('company/plan') }}" class="sidebar-link pjax sidebar_hide">
                                             <i class="bi bi-arrow-repeat"></i>
@@ -202,19 +228,8 @@
                                             <div data-i18n="Support"><span>Support</span></div>
                                             </a>
                                         </li>
-
-                                        <!--@if($sessionUser->hasPermission('admin_home_page'))-->
-                                        <!--<li class="sidebar-item ">-->
-                                        <!--    <?php $baseUrl = $_SERVER["APP_URL"]; ?>-->
-                                        <!--    <a href="{{ $baseUrl }}?edit=1" target="_blank" class="sidebar-link sidebar_hide">-->
-                                        <!--        <i class="bi bi-house-door-fill"></i>-->
-                                        <!--        <div data-i18n="Home page"><span>Home page</span></div>-->
-                                        <!--    </a>-->
-                                        <!--</li>-->
-                                        <!--@endif-->
                         
-                                        @if($sessionUser->hasPermission(['company/account/update','company/account/password-change']))
-                                        <li class="sidebar-item  has-sub pjax {{ $general->routeMatchClass(['company/account/update'], 'open') }}">
+                                        <li class="sidebar-item  has-sub pjax {{ $general->routeMatchClass(['company/account/update', 'company/account/password-change'], 'open') }}">
                                             <a href="javascript:void(0);" class="sidebar-link  pjax">
                                             <i class="bi bi-person-circle"></i>
                                                 <div data-i18n="My Account"><span>My Account</span></div>
@@ -223,20 +238,12 @@
                                                 <li class="submenu-item {{ $general->routeMatchClass('company/account/update')}} ">
                                                     <a href="{{ route('company/account/update') }}" class="submenu-link pjax sidebar_hide">Account</a>
                                                 </li>
+
                                                 <li class="submenu-item {{ $general->routeMatchClass('company/account/password-change')}} ">
-                                                    <a href="{{ route('company/account/password-change') }}" class="submenu-link pjax sidebar_hide">Security </a>
+                                                    <a href="{{ route('company/account/password-change') }}" class="submenu-link pjax sidebar_hide">Security</a>
                                                 </li>
-                                            
-                                                <!--<li class="submenu-item {{ $general->routeMatchClass('admin/account/device')}} ">-->
-                                                <!--    <a href="{{ route('admin/account/device') }}" class="submenu-link pjax sidebar_hide">Device</a>-->
-                                                <!--</li>-->
-                                                <!--<li class="submenu-item {{ $general->routeMatchClass('admin/account/log')}} ">-->
-                                                <!--    <a href="{{ route('admin/account/log') }}" class="submenu-link pjax sidebar_hide">Log</a>-->
-                                                <!--</li>-->
-                                                
                                             </ul>
                                         </li>
-                                        @endif
                                         <li class="sidebar-item ">
                                             <a href="{{ route('company/auth/logout') }}" class="sidebar-link noroute" id="logout-btn">
                                             <i class="icon-mid bi bi-box-arrow-left me-2"></i>
@@ -348,12 +355,17 @@
                                             </li>
 
                                             <!-- User Dropdown -->
+                                            <?php 
+                                                $isSubUser = ($sessionUser->type == 2 && !empty($sessionUser->company_id));
+                                                $userFullName = trim($sessionUser->first_name . ' ' . $sessionUser->last_name);
+                                                $displayName = $isSubUser ? ($userFullName ?: $sessionUser->email) : ($sessionUser->company_name ?: $userFullName);
+                                            ?>
                                             <div class="dropdown">
                                                 <a href="#" data-bs-toggle="dropdown" aria-expanded="false">
                                                     <div class="user-menu d-flex align-items-center">
                                                         <div class="user-name text-end me-md-3 me-1">
                                                             <h6 class="mb-0 text-gray-600 mt-1 moblie_comp_name">
-                                                                {{ $sessionUser->company_name }}
+                                                                {{ $displayName }}
                                                             </h6>
                                                         </div>
                                                         <div class="user-img d-flex align-items-center">
@@ -368,7 +380,7 @@
                                                 <!-- Dropdown Menu -->
                                                 <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="dropdownMenuButton" style="min-width: 11rem;">
                                                     <li>
-                                                        <h6 class="dropdown-header">Hello, {{ $sessionUser->company_name }} !</h6>
+                                                        <h6 class="dropdown-header">Hello, {{ $displayName }} !</h6>
                                                         <h6 class="dropdown-header">{{ $sessionUser->email }}</h6>
                                                     </li>
                                                     <li>
@@ -485,12 +497,12 @@
 
         <script src="theme/extensions/datatables.net-bs5/js/dataTables.bootstrap5.min.js"></script>
         <script src="assets/js/pjax.js"></script>
+        <script src="assets/js/auth-interceptor.js"></script>
     
             @stack('scripts')
         <script>
             $(document).ready(function() {
                 runDocumentReady();
-            
             });
         </script>
         

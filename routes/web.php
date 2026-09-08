@@ -306,11 +306,15 @@ Route::group(['prefix' => 'company', 'middleware' => 'web'], function () {
     Route::get('auth/password-forgot', '\App\Http\Controllers\Company\AuthController@passwordForgot')->name('company/auth/password-forgot');
     Route::post('auth/password-forgot-process', '\App\Http\Controllers\Company\AuthController@passwordForgotProcess')->name('company/auth/password-forgot-process');   
     
+    /* Password Setup for Invited Team Members */
+    Route::get('auth/setup-password', '\App\Http\Controllers\Company\AuthController@setupPassword')->name('company/auth/setup-password');
+    Route::post('auth/setup-password-process', '\App\Http\Controllers\Company\AuthController@setupPasswordProcess')->name('company/auth/setup-password-process');
+
     Route::get('login-as-company/{id}','\App\Http\Controllers\Admin\AuthController@loginAsCompany')->name('company/login-as-company');
    
    Route::get('company/plan','App\Http\Controllers\Company\PlanController@index')->name('company/plan');
    Route::any('plan-select','App\Http\Controllers\Company\SubscriptionController@planSelect')->name('plan-select');
-    
+     
    Route::get('checkout/success','App\Http\Controllers\Company\SubscriptionController@chekoutSuccess')->name('company/checkout/success');
    Route::get('checkout/cancel','App\Http\Controllers\Company\SubscriptionController@chekoutCancel')->name('company/checkout/cancel');
    
@@ -320,13 +324,22 @@ Route::group(['prefix' => 'company', 'middleware' => 'web'], function () {
    
    Route::get('login-as-contractor/{id}','\App\Http\Controllers\Company\AuthController@loginAsContractor')->name('company/login-as-contractor');
    Route::get('login-back','\App\Http\Controllers\Company\AuthController@loginBackAsCompany')->name('company/login-back');
-    
+     
 });
 
 /* Company routes =========================================================================== */
 Route::group(['prefix' => 'company', 'middleware' => ['web', 'company']], function () {
     Route::get('dashboard', '\App\Http\Controllers\Company\SiteController@dashboard')->name('company/dashboard');
     Route::get('support', '\App\Http\Controllers\Company\SiteController@support')->name('company/support');
+
+    /* Team Members Management Routes */
+    Route::get('team-members', '\App\Http\Controllers\Company\TeamMemberController@index')->name('company/team-members');
+    Route::post('team-member/list', '\App\Http\Controllers\Company\TeamMemberController@list')->name('company/team-member/list');
+    Route::get('team-member/create', '\App\Http\Controllers\Company\TeamMemberController@create')->name('company/team-member/create');
+    Route::get('team-member/update', '\App\Http\Controllers\Company\TeamMemberController@update')->name('company/team-member/update');
+    Route::post('team-member/save', '\App\Http\Controllers\Company\TeamMemberController@save')->name('company/team-member/save');
+    Route::post('team-member/status-save', '\App\Http\Controllers\Company\TeamMemberController@statusSave')->name('company/team-member/status-save');
+    Route::post('team-member/delete', '\App\Http\Controllers\Company\TeamMemberController@delete')->name('company/team-member/delete');
 
     Route::any('dashboard/expirationalList', '\App\Http\Controllers\Company\SiteController@expirationalList')->name('company/dashboard/expirationalList');
     

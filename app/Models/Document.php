@@ -116,8 +116,7 @@ class Document extends Model
                     ->from('company_allowed_documents as cad')
                     ->whereColumn('cad.company_id', 'contractor_user.company_id')
                     ->where(function ($allowed) {
-                        $allowed->whereRaw("JSON_VALID(cad.document_type_id) AND (JSON_CONTAINS(cad.document_type_id, CONCAT(CHAR(34), CAST(document.type AS CHAR), CHAR(34))) OR JSON_CONTAINS(cad.document_type_id, CAST(document.type AS UNSIGNED)))")
-                            ->orWhereRaw("cad.document_type_id = CAST(document.type AS CHAR)");
+                        $allowed->whereRaw("(JSON_VALID(cad.document_type_id) AND (JSON_CONTAINS(cad.document_type_id, CAST(document.type AS JSON)) OR JSON_CONTAINS(cad.document_type_id, JSON_QUOTE(CAST(document.type AS CHAR))))) OR FIND_IN_SET(CAST(document.type AS CHAR), REPLACE(REPLACE(REPLACE(REPLACE(cad.document_type_id, '[', ''), ']', ''), '\"', ''), ' ', '')) > 0 OR cad.document_type_id = CAST(document.type AS CHAR)");
                     });
             })
             ->select("{$this->table}.*", "document_type.name as name");
@@ -203,8 +202,7 @@ class Document extends Model
                     ->from('company_allowed_documents as cad')
                     ->whereColumn('cad.company_id', 'user.company_id')
                     ->where(function ($allowed) {
-                        $allowed->whereRaw("JSON_VALID(cad.document_type_id) AND (JSON_CONTAINS(cad.document_type_id, CONCAT('\"', CAST(document.type AS CHAR), '\"')) OR JSON_CONTAINS(cad.document_type_id, CAST(document.type AS UNSIGNED)))")
-                            ->orWhereRaw("cad.document_type_id = CAST(document.type AS CHAR)");
+                        $allowed->whereRaw("(JSON_VALID(cad.document_type_id) AND (JSON_CONTAINS(cad.document_type_id, CAST(document.type AS JSON)) OR JSON_CONTAINS(cad.document_type_id, JSON_QUOTE(CAST(document.type AS CHAR))))) OR FIND_IN_SET(CAST(document.type AS CHAR), REPLACE(REPLACE(REPLACE(REPLACE(cad.document_type_id, '[', ''), ']', ''), '\"', ''), ' ', '')) > 0 OR cad.document_type_id = CAST(document.type AS CHAR)");
                     });
             })
             ->orderBy('document.status');
@@ -290,8 +288,7 @@ class Document extends Model
                     ->from('company_allowed_documents as cad')
                     ->whereColumn('cad.company_id', 'user.company_id')
                     ->where(function ($allowed) {
-                        $allowed->whereRaw("JSON_VALID(cad.document_type_id) AND (JSON_CONTAINS(cad.document_type_id, CONCAT(CHAR(34), CAST(document.type AS CHAR), CHAR(34))) OR JSON_CONTAINS(cad.document_type_id, CAST(document.type AS UNSIGNED)))")
-                            ->orWhereRaw("cad.document_type_id = CAST(document.type AS CHAR)");
+                        $allowed->whereRaw("(JSON_VALID(cad.document_type_id) AND (JSON_CONTAINS(cad.document_type_id, CAST(document.type AS JSON)) OR JSON_CONTAINS(cad.document_type_id, JSON_QUOTE(CAST(document.type AS CHAR))))) OR FIND_IN_SET(CAST(document.type AS CHAR), REPLACE(REPLACE(REPLACE(REPLACE(cad.document_type_id, '[', ''), ']', ''), '\"', ''), ' ', '')) > 0 OR cad.document_type_id = CAST(document.type AS CHAR)");
                     });
             });
     
@@ -399,8 +396,7 @@ class Document extends Model
                     ->from('company_allowed_documents as cad')
                     ->whereColumn('cad.company_id', 'user.company_id')
                     ->where(function ($allowed) {
-                        $allowed->whereRaw("JSON_VALID(cad.document_type_id) AND (JSON_CONTAINS(cad.document_type_id, CONCAT(CHAR(34), CAST(document.type AS CHAR), CHAR(34))) OR JSON_CONTAINS(cad.document_type_id, CAST(document.type AS UNSIGNED)))")
-                            ->orWhereRaw("cad.document_type_id = CAST(document.type AS CHAR)");
+                        $allowed->whereRaw("(JSON_VALID(cad.document_type_id) AND (JSON_CONTAINS(cad.document_type_id, CAST(document.type AS JSON)) OR JSON_CONTAINS(cad.document_type_id, JSON_QUOTE(CAST(document.type AS CHAR))))) OR FIND_IN_SET(CAST(document.type AS CHAR), REPLACE(REPLACE(REPLACE(REPLACE(cad.document_type_id, '[', ''), ']', ''), '\"', ''), ' ', '')) > 0 OR cad.document_type_id = CAST(document.type AS CHAR)");
                     });
             });
 
@@ -538,8 +534,7 @@ class Document extends Model
                     ->from('company_allowed_documents as cad')
                     ->whereColumn('cad.company_id', 'user.company_id')
                     ->where(function ($allowed) {
-                        $allowed->whereRaw("JSON_VALID(cad.document_type_id) AND (JSON_CONTAINS(cad.document_type_id, CONCAT(CHAR(34), CAST(document.type AS CHAR), CHAR(34))) OR JSON_CONTAINS(cad.document_type_id, CAST(document.type AS UNSIGNED)))")
-                            ->orWhereRaw("cad.document_type_id = CAST(document.type AS CHAR)");
+                        $allowed->whereRaw("(JSON_VALID(cad.document_type_id) AND (JSON_CONTAINS(cad.document_type_id, CAST(document.type AS JSON)) OR JSON_CONTAINS(cad.document_type_id, JSON_QUOTE(CAST(document.type AS CHAR))))) OR FIND_IN_SET(CAST(document.type AS CHAR), REPLACE(REPLACE(REPLACE(REPLACE(cad.document_type_id, '[', ''), ']', ''), '\"', ''), ' ', '')) > 0 OR cad.document_type_id = CAST(document.type AS CHAR)");
                     });
             })
             ->where('document.user_id', $contractorId);
@@ -705,84 +700,63 @@ class Document extends Model
     protected function generateActionLinks(object $row, $sessionUser): string
     {
         $actionLinks = '';
-        if($sessionUser->type == 2 ){
-            // dd($sessionUser);
-            // company section
-            $companyPlanId = (new User())->getCompanyPlanInfo($sessionUser->id);
-           
-            $actionLinks .= sprintf(
-                '<a onclick="app.showModalView(\'company/contractors/%d/document/view?id=%d\')" class="text-body pjax act-btns tool-btn me-2"><i class="bi bi-eye-fill"></i> <span class="tooltip-text">View</span></a>',
-                $row->user_id,
-                $row->id
-            );
-            if($sessionUser->unlimited_conractors == 1){
-                if($row->approve_status == 0 || $row->approve_status == 2){
-                    $actionLinks .= sprintf(
-                    '<a onclick="app.confirmApproveAction(this);" data-action="company/document/%d/change_status/%s" 
-                            class="act-btns tool-btn me-2" >
-                            <i class="bi bi-check-circle-fill"><span class="tooltip-text">Approve</span></i>
-                    </a>',
-                        $row->id,'approve'
-                    );
-                }
-                
-                if ($row->approve_status == 0 || $row->approve_status == 1 ) {
-                
-                $actionLinks .= sprintf( 
-                        '<a onclick="app.showModalView(\'' . route('company/contractor/document/send-remindermail-new', ['id' => $row->id ,'type'=>'Reject']) . '\')" class="act-btns tool-btn me-2">    <i class="bi bi-x-circle-fill"></i><span class="tooltip-text">Reject</span></a>',
-                        $row->id,'reject'
-                    );
-                }
-            }elseif($companyPlanId != 1 && $companyPlanId != null){
-                if($row->approve_status == 0 || $row->approve_status == 2){
-                    $actionLinks .= sprintf(
-                    '<a onclick="app.confirmApproveAction(this);" data-action="company/document/%d/change_status/%s" 
-                            class="act-btns tool-btn me-2" >
-                            <i class="bi bi-check-circle-fill"><span class="tooltip-text">Approve</span></i>
-                    </a>',
-                        $row->id,'approve'
-                    );
-                }
-                
-                if ($row->approve_status == 0 || $row->approve_status == 1 ) {
-                
-                $actionLinks .= sprintf( 
-                        '<a onclick="app.showModalView(\'' . route('company/contractor/document/send-remindermail-new', ['id' => $row->id ,'type'=>'Reject']) . '\')" class="act-btns tool-btn me-2">    <i class="bi bi-x-circle-fill"></i><span class="tooltip-text">Reject</span></a>',
-                        $row->id,'reject'
-                    );
-                }
-            }
-        }
-        
-        if ($sessionUser && $sessionUser->hasPermission('admin/document/view')) {
-           
-            $actionLinks .= sprintf(
-                '<a onclick="app.showModalView(\'admin/contractors/%d/document/view?id=%d\')" class="text-body pjax act-btns tool-btn me-2"><i class="bi bi-eye-fill"></i> <span class="tooltip-text">View</span></a>',
-                $row->user_id,
-                $row->id
-            );
+        if ($sessionUser && (int)$sessionUser->type === 2) {
+            $companyOwnerId = $sessionUser->getCompanyOwnerId();
+            $companyOwner = User::find($companyOwnerId);
+            $companyPlanId = (new User())->getCompanyPlanInfo($companyOwnerId);
+            $isUnlimited = ($sessionUser->unlimited_conractors == 1) || ($companyOwner && $companyOwner->unlimited_conractors == 1);
+            $hasViewPerm = $sessionUser->hasPermission('company/document/view');
+            $hasStatusPerm = $sessionUser->hasPermission('company/document/change_status');
 
-        }
-        
-        
-        
-        if ($sessionUser && $sessionUser->hasPermission('admin/document/change_status')) {
-            if($row->approve_status == 0 || $row->approve_status == 2){
+            if ($hasViewPerm) {
                 $actionLinks .= sprintf(
-                '<a onclick="app.confirmApproveAction(this);" data-action="admin/document/%d/change_status/%s" 
-                        class="act-btns tool-btn me-2" >
-                        <i class="bi bi-check-circle-fill"><span class="tooltip-text">Approve</span></i>
-                </a>',
-                    $row->id,'approve'
+                    '<a onclick="app.showModalView(\'company/contractors/%d/document/view?id=%d\')" class="text-body pjax act-btns tool-btn me-2"><i class="bi bi-eye-fill"></i> <span class="tooltip-text">View</span></a>',
+                    $row->user_id,
+                    $row->id
                 );
             }
-            
-            if ($row->approve_status == 0 || $row->approve_status == 1 ) {
-            
-                $actionLinks .= sprintf( 
-                    '<a onclick="app.showModalView(\'' . route('admin/contractor/document/send-remindermail-new', ['id' => $row->id ,'type'=>'Reject']) . '\')" class="act-btns tool-btn me-2">    <i class="bi bi-x-circle-fill"></i><span class="tooltip-text">Reject</span></a>',
-                    $row->id,'reject'
+
+            if ($hasStatusPerm && ($isUnlimited || ($companyPlanId != 1 && $companyPlanId != null))) {
+                if ($row->approve_status == 0 || $row->approve_status == 2) {
+                    $actionLinks .= sprintf(
+                        '<a onclick="app.confirmApproveAction(this);" data-action="company/document/%d/change_status/%s" class="act-btns tool-btn me-2"><i class="bi bi-check-circle-fill"><span class="tooltip-text">Approve</span></i></a>',
+                        $row->id, 'approve'
+                    );
+                }
+                
+                if ($row->approve_status == 0 || $row->approve_status == 1) {
+                    $actionLinks .= sprintf( 
+                        '<a onclick="app.showModalView(\'' . route('company/contractor/document/send-remindermail-new', ['id' => $row->id ,'type'=>'Reject']) . '\')" class="act-btns tool-btn me-2"><i class="bi bi-x-circle-fill"></i><span class="tooltip-text">Reject</span></a>',
+                        $row->id, 'reject'
+                    );
+                }
+            }
+        } elseif ($sessionUser && ((int)$sessionUser->type === 0 || (int)$sessionUser->type === 1)) {
+            if ($sessionUser->hasPermission('admin/document/view')) {
+                $actionLinks .= sprintf(
+                    '<a onclick="app.showModalView(\'admin/contractors/%d/document/view?id=%d\')" class="text-body pjax act-btns tool-btn me-2"><i class="bi bi-eye-fill"></i> <span class="tooltip-text">View</span></a>',
+                    $row->user_id,
+                    $row->id
                 );
+            }
+
+            if ($sessionUser->hasPermission('admin/document/change_status')) {
+                if ($row->approve_status == 0 || $row->approve_status == 2) {
+                    $actionLinks .= sprintf(
+                    '<a onclick="app.confirmApproveAction(this);" data-action="admin/document/%d/change_status/%s" 
+                            class="act-btns tool-btn me-2" >
+                            <i class="bi bi-check-circle-fill"><span class="tooltip-text">Approve</span></i>
+                    </a>',
+                        $row->id, 'approve'
+                    );
+                }
+                
+                if ($row->approve_status == 0 || $row->approve_status == 1) {
+                    $actionLinks .= sprintf( 
+                        '<a onclick="app.showModalView(\'' . route('admin/contractor/document/send-remindermail-new', ['id' => $row->id ,'type'=>'Reject']) . '\')" class="act-btns tool-btn me-2">    <i class="bi bi-x-circle-fill"></i><span class="tooltip-text">Reject</span></a>',
+                        $row->id, 'reject'
+                    );
+                }
             }
         }
   
@@ -1022,8 +996,7 @@ class Document extends Model
                 ->from('company_allowed_documents as cad')
                 ->whereColumn('cad.company_id', 'user.company_id')
                 ->where(function ($allowed) {
-                    $allowed->whereRaw("JSON_VALID(cad.document_type_id) AND (JSON_CONTAINS(cad.document_type_id, CONCAT(CHAR(34), CAST(document.type AS CHAR), CHAR(34))) OR JSON_CONTAINS(cad.document_type_id, CAST(document.type AS UNSIGNED)))")
-                        ->orWhereRaw("cad.document_type_id = CAST(document.type AS CHAR)");
+                    $allowed->whereRaw("(JSON_VALID(cad.document_type_id) AND (JSON_CONTAINS(cad.document_type_id, CAST(document.type AS JSON)) OR JSON_CONTAINS(cad.document_type_id, JSON_QUOTE(CAST(document.type AS CHAR))))) OR FIND_IN_SET(CAST(document.type AS CHAR), REPLACE(REPLACE(REPLACE(REPLACE(cad.document_type_id, '[', ''), ']', ''), '\"', ''), ' ', '')) > 0 OR cad.document_type_id = CAST(document.type AS CHAR)");
                 });
         };
         

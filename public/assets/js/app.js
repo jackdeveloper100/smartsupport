@@ -372,6 +372,48 @@ const app = {
         }
     });
 },
+
+    /**
+     * Performs an AJAX action with dynamic custom confirmation title, text, and button label
+     * @param {HTMLElement} obj - DOM element with data attributes
+     * @param {Function} cb - Callback function
+     */
+    confirmCustomAction: function(obj, cb) {
+        const $obj = $(obj);
+        const postData = $obj.data("id") ? { id: $obj.data("id") } : {};
+        const title = $obj.data("title") || "Are you sure?";
+        const text = $obj.data("text") || "You won't be able to revert this!";
+        const confirmButtonText = $obj.data("confirm-btn") || "Yes";
+        this.ajaxCustomConfirm($obj.data("action"), postData, cb, title, text, confirmButtonText);
+    },
+
+    /**
+     * Shows a custom confirmation dialog before performing AJAX POST
+     * @param {string} url - Target URL
+     * @param {Object} postData - Data to send
+     * @param {Function} cb - Callback function
+     * @param {string} title - Modal title
+     * @param {string} text - Modal body text
+     * @param {string} confirmButtonText - Confirm button text
+     */
+    ajaxCustomConfirm: function(url, postData, cb, title, text, confirmButtonText) {
+        Swal.fire({
+            title: title || "Are you sure?",
+            text: text || "You won't be able to revert this!",
+            icon: "warning",
+            showCancelButton: true,
+            confirmButtonText: confirmButtonText || "Yes",
+            cancelButtonText: "No",
+            customClass: {
+                confirmButton: "btn btn-primary",
+                cancelButton: "btn btn-secondary"
+            }
+        }).then((result) => {
+            if (result.value) {
+                this.ajaxPost(url, postData, cb);
+            }
+        });
+    },
     
     
      /**
