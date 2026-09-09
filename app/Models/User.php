@@ -562,7 +562,7 @@ class User extends Authenticatable
                 ->from('company_allowed_documents as cad')
                 ->whereColumn('cad.company_id', 'user.company_id')
                 ->where(function ($allowed) {
-                    $allowed->whereRaw("(JSON_VALID(cad.document_type_id) AND (JSON_CONTAINS(cad.document_type_id, CAST(document.type AS JSON)) OR JSON_CONTAINS(cad.document_type_id, JSON_QUOTE(CAST(document.type AS CHAR))))) OR FIND_IN_SET(CAST(document.type AS CHAR), REPLACE(REPLACE(REPLACE(REPLACE(cad.document_type_id, '[', ''), ']', ''), '\"', ''), ' ', '')) > 0 OR cad.document_type_id = CAST(document.type AS CHAR)");
+                    $allowed->whereRaw("(JSON_VALID(cad.document_type_id) AND (JSON_CONTAINS(cad.document_type_id, CAST(document.type AS CHAR)) OR JSON_CONTAINS(cad.document_type_id, JSON_QUOTE(CAST(document.type AS CHAR))))) OR FIND_IN_SET(CAST(document.type AS CHAR), REPLACE(REPLACE(REPLACE(REPLACE(cad.document_type_id, '[', ''), ']', ''), '\"', ''), ' ', '')) > 0 OR cad.document_type_id = CAST(document.type AS CHAR)");
                 });
         });
 
@@ -1113,7 +1113,11 @@ class User extends Authenticatable
         $model->last_name = $postData['last_name'] ?? null;
         $model->business_name = $postData['business_name'] ?? null;
         $model->company_id = $postData['company_name'];
-        $model->company_approved_status = $postData['company_approved_status'] ?? 0;
+        if ($id && isset($model->company_approved_status)) {
+            $model->company_approved_status = $model->company_approved_status;
+        } else {
+            $model->company_approved_status = $postData['company_approved_status'] ?? 1;
+        }
         $model->email = $postData['email'];
         $model->country = $postData['country'] ?? null;
         $model->status = $postData['status'];

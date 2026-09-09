@@ -116,7 +116,7 @@ class Document extends Model
                     ->from('company_allowed_documents as cad')
                     ->whereColumn('cad.company_id', 'contractor_user.company_id')
                     ->where(function ($allowed) {
-                        $allowed->whereRaw("(JSON_VALID(cad.document_type_id) AND (JSON_CONTAINS(cad.document_type_id, CAST(document.type AS JSON)) OR JSON_CONTAINS(cad.document_type_id, JSON_QUOTE(CAST(document.type AS CHAR))))) OR FIND_IN_SET(CAST(document.type AS CHAR), REPLACE(REPLACE(REPLACE(REPLACE(cad.document_type_id, '[', ''), ']', ''), '\"', ''), ' ', '')) > 0 OR cad.document_type_id = CAST(document.type AS CHAR)");
+                        $allowed->whereRaw("(JSON_VALID(cad.document_type_id) AND (JSON_CONTAINS(cad.document_type_id, CAST(document.type AS CHAR)) OR JSON_CONTAINS(cad.document_type_id, JSON_QUOTE(CAST(document.type AS CHAR))))) OR FIND_IN_SET(CAST(document.type AS CHAR), REPLACE(REPLACE(REPLACE(REPLACE(cad.document_type_id, '[', ''), ']', ''), '\"', ''), ' ', '')) > 0 OR cad.document_type_id = CAST(document.type AS CHAR)");
                     });
             })
             ->select("{$this->table}.*", "document_type.name as name");
@@ -202,7 +202,7 @@ class Document extends Model
                     ->from('company_allowed_documents as cad')
                     ->whereColumn('cad.company_id', 'user.company_id')
                     ->where(function ($allowed) {
-                        $allowed->whereRaw("(JSON_VALID(cad.document_type_id) AND (JSON_CONTAINS(cad.document_type_id, CAST(document.type AS JSON)) OR JSON_CONTAINS(cad.document_type_id, JSON_QUOTE(CAST(document.type AS CHAR))))) OR FIND_IN_SET(CAST(document.type AS CHAR), REPLACE(REPLACE(REPLACE(REPLACE(cad.document_type_id, '[', ''), ']', ''), '\"', ''), ' ', '')) > 0 OR cad.document_type_id = CAST(document.type AS CHAR)");
+                        $allowed->whereRaw("(JSON_VALID(cad.document_type_id) AND (JSON_CONTAINS(cad.document_type_id, CAST(document.type AS CHAR)) OR JSON_CONTAINS(cad.document_type_id, JSON_QUOTE(CAST(document.type AS CHAR))))) OR FIND_IN_SET(CAST(document.type AS CHAR), REPLACE(REPLACE(REPLACE(REPLACE(cad.document_type_id, '[', ''), ']', ''), '\"', ''), ' ', '')) > 0 OR cad.document_type_id = CAST(document.type AS CHAR)");
                     });
             })
             ->orderBy('document.status');
@@ -288,7 +288,7 @@ class Document extends Model
                     ->from('company_allowed_documents as cad')
                     ->whereColumn('cad.company_id', 'user.company_id')
                     ->where(function ($allowed) {
-                        $allowed->whereRaw("(JSON_VALID(cad.document_type_id) AND (JSON_CONTAINS(cad.document_type_id, CAST(document.type AS JSON)) OR JSON_CONTAINS(cad.document_type_id, JSON_QUOTE(CAST(document.type AS CHAR))))) OR FIND_IN_SET(CAST(document.type AS CHAR), REPLACE(REPLACE(REPLACE(REPLACE(cad.document_type_id, '[', ''), ']', ''), '\"', ''), ' ', '')) > 0 OR cad.document_type_id = CAST(document.type AS CHAR)");
+                        $allowed->whereRaw("(JSON_VALID(cad.document_type_id) AND (JSON_CONTAINS(cad.document_type_id, CAST(document.type AS CHAR)) OR JSON_CONTAINS(cad.document_type_id, JSON_QUOTE(CAST(document.type AS CHAR))))) OR FIND_IN_SET(CAST(document.type AS CHAR), REPLACE(REPLACE(REPLACE(REPLACE(cad.document_type_id, '[', ''), ']', ''), '\"', ''), ' ', '')) > 0 OR cad.document_type_id = CAST(document.type AS CHAR)");
                     });
             });
     
@@ -396,7 +396,7 @@ class Document extends Model
                     ->from('company_allowed_documents as cad')
                     ->whereColumn('cad.company_id', 'user.company_id')
                     ->where(function ($allowed) {
-                        $allowed->whereRaw("(JSON_VALID(cad.document_type_id) AND (JSON_CONTAINS(cad.document_type_id, CAST(document.type AS JSON)) OR JSON_CONTAINS(cad.document_type_id, JSON_QUOTE(CAST(document.type AS CHAR))))) OR FIND_IN_SET(CAST(document.type AS CHAR), REPLACE(REPLACE(REPLACE(REPLACE(cad.document_type_id, '[', ''), ']', ''), '\"', ''), ' ', '')) > 0 OR cad.document_type_id = CAST(document.type AS CHAR)");
+                        $allowed->whereRaw("(JSON_VALID(cad.document_type_id) AND (JSON_CONTAINS(cad.document_type_id, CAST(document.type AS CHAR)) OR JSON_CONTAINS(cad.document_type_id, JSON_QUOTE(CAST(document.type AS CHAR))))) OR FIND_IN_SET(CAST(document.type AS CHAR), REPLACE(REPLACE(REPLACE(REPLACE(cad.document_type_id, '[', ''), ']', ''), '\"', ''), ' ', '')) > 0 OR cad.document_type_id = CAST(document.type AS CHAR)");
                     });
             });
 
@@ -534,7 +534,7 @@ class Document extends Model
                     ->from('company_allowed_documents as cad')
                     ->whereColumn('cad.company_id', 'user.company_id')
                     ->where(function ($allowed) {
-                        $allowed->whereRaw("(JSON_VALID(cad.document_type_id) AND (JSON_CONTAINS(cad.document_type_id, CAST(document.type AS JSON)) OR JSON_CONTAINS(cad.document_type_id, JSON_QUOTE(CAST(document.type AS CHAR))))) OR FIND_IN_SET(CAST(document.type AS CHAR), REPLACE(REPLACE(REPLACE(REPLACE(cad.document_type_id, '[', ''), ']', ''), '\"', ''), ' ', '')) > 0 OR cad.document_type_id = CAST(document.type AS CHAR)");
+                        $allowed->whereRaw("(JSON_VALID(cad.document_type_id) AND (JSON_CONTAINS(cad.document_type_id, CAST(document.type AS CHAR)) OR JSON_CONTAINS(cad.document_type_id, JSON_QUOTE(CAST(document.type AS CHAR))))) OR FIND_IN_SET(CAST(document.type AS CHAR), REPLACE(REPLACE(REPLACE(REPLACE(cad.document_type_id, '[', ''), ']', ''), '\"', ''), ' ', '')) > 0 OR cad.document_type_id = CAST(document.type AS CHAR)");
                     });
             })
             ->where('document.user_id', $contractorId);
@@ -996,7 +996,7 @@ class Document extends Model
                 ->from('company_allowed_documents as cad')
                 ->whereColumn('cad.company_id', 'user.company_id')
                 ->where(function ($allowed) {
-                    $allowed->whereRaw("(JSON_VALID(cad.document_type_id) AND (JSON_CONTAINS(cad.document_type_id, CAST(document.type AS JSON)) OR JSON_CONTAINS(cad.document_type_id, JSON_QUOTE(CAST(document.type AS CHAR))))) OR FIND_IN_SET(CAST(document.type AS CHAR), REPLACE(REPLACE(REPLACE(REPLACE(cad.document_type_id, '[', ''), ']', ''), '\"', ''), ' ', '')) > 0 OR cad.document_type_id = CAST(document.type AS CHAR)");
+                    $allowed->whereRaw("(JSON_VALID(cad.document_type_id) AND (JSON_CONTAINS(cad.document_type_id, CAST(document.type AS CHAR)) OR JSON_CONTAINS(cad.document_type_id, JSON_QUOTE(CAST(document.type AS CHAR))))) OR FIND_IN_SET(CAST(document.type AS CHAR), REPLACE(REPLACE(REPLACE(REPLACE(cad.document_type_id, '[', ''), ']', ''), '\"', ''), ' ', '')) > 0 OR cad.document_type_id = CAST(document.type AS CHAR)");
                 });
         };
         
