@@ -637,11 +637,21 @@
 
 ---
 
-### Session 60: Remove Unused View Vendor Details Permission Item (September 2026)
+### Session 61: Fix MariaDB SQL Error 1064 (CAST AS JSON syntax error across queries) (September 2026)
 
 | Date | File Path | Component | Action / What Changed | Why Changed (Rationale) | Status |
 | :--- | :--- | :--- | :--- | :--- | :--- |
-| 2026-09-08 | [`app/Services/CompanyPermissionService.php`](file:///c:/SFTP/tirbital/Smart%20Support/app/Services/CompanyPermissionService.php) | Service | Removed `['title' => 'View Vendor Details', 'key' => 'company/vendor/view']` from permission list. | Clean up unused permission item from Team Member permissions list UI since `company/vendor/view` is not used in application routes or controllers. | **Completed** |
+| 2026-09-08 | [`app/Models/User.php`](file:///c:/SFTP/tirbital/Smart%20Support/app/Models/User.php) | Model | Replaced `CAST(document.type AS JSON)` with `CAST(document.type AS CHAR)` in subquery filter. | Fix `SQLSTATE[42000] Syntax error 1064` on MariaDB production database server (`app3.easyw9.com`), which does not support `AS JSON` cast target data type. | **Completed** |
+| 2026-09-08 | [`app/Models/DocumentActivity.php`](file:///c:/SFTP/tirbital/Smart%20Support/app/Models/DocumentActivity.php) | Model | Replaced `CAST(document.type AS JSON)` with `CAST(document.type AS CHAR)` in document subqueries. | Fix `SQLSTATE[42000] Syntax error 1064` on MariaDB production database server when listing document activity logs. | **Completed** |
+| 2026-09-08 | [`app/Models/Document.php`](file:///c:/SFTP/tirbital/Smart%20Support/app/Models/Document.php) | Model | Replaced `CAST(document.type AS JSON)` with `CAST(document.type AS CHAR)` across 6 subqueries (`allowedDocTypeIds`, document filtering). | Fix `SQLSTATE[42000] Syntax error 1064` on MariaDB production database server across document query scopes and counting methods. | **Completed** |
+| 2026-09-08 | [`app/Http/Controllers/Admin/ReportController.php`](file:///c:/SFTP/tirbital/Smart%20Support/app/Http/Controllers/Admin/ReportController.php) | Controller | Replaced `CAST(document.type AS JSON)` with `CAST(document.type AS CHAR)` across 3 subquery filters. | Fix `SQLSTATE[42000] Syntax error 1064` on MariaDB production database server in Admin ReportController queries. | **Completed** |
+
+### Session 62: Preserve Contractor Approval Status on Profile Update (September 2026)
+
+| Date | File Path | Component | Action / What Changed | Why Changed (Rationale) | Status |
+| :--- | :--- | :--- | :--- | :--- | :--- |
+| 2026-09-09 | [`resources/views/company/contractor/_form.blade.php`](file:///c:/SFTP/tirbital/Smart%20Support/resources/views/company/contractor/_form.blade.php) | Blade View | Changed hidden `company_approved_status` input value from hardcoded `1` to `{{ isset($model->company_approved_status) ? $model->company_approved_status : 1 }}`. | Prevent contractor edit form submission from sending an unverified `company_approved_status = 1` value for existing contractors. | **Completed** |
+| 2026-09-09 | [`app/Models/User.php`](file:///c:/SFTP/tirbital/Smart%20Support/app/Models/User.php) | Model | Updated `store()` method to preserve `$model->company_approved_status` when updating existing contractors (`$id` present). | Prevent profile updates or active/inactive status changes on rejected/pending contractors from silently overwriting `company_approved_status` to Approved (`1`) without limit checks. | **Completed** |
 
 ---
 

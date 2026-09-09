@@ -12,7 +12,7 @@
     <input type="hidden" name="id" value="{{ @$model->id }}">
     <input type="hidden" name="pass" value="{{ @$model->password }}">
     <input type="hidden" name="type" value="1">
-    <input type="hidden" name="company_approved_status" value="1">
+    <input type="hidden" name="company_approved_status" value="{{ isset($model->company_approved_status) ? $model->company_approved_status : 1 }}">
     <input type="hidden" name="company_name" value="{{ auth()->user()->getCompanyOwnerId() }}">
     
     <div class="row">
