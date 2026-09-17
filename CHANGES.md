@@ -653,6 +653,13 @@
 | 2026-09-09 | [`resources/views/company/contractor/_form.blade.php`](file:///c:/SFTP/tirbital/Smart%20Support/resources/views/company/contractor/_form.blade.php) | Blade View | Changed hidden `company_approved_status` input value from hardcoded `1` to `{{ isset($model->company_approved_status) ? $model->company_approved_status : 1 }}`. | Prevent contractor edit form submission from sending an unverified `company_approved_status = 1` value for existing contractors. | **Completed** |
 | 2026-09-09 | [`app/Models/User.php`](file:///c:/SFTP/tirbital/Smart%20Support/app/Models/User.php) | Model | Updated `store()` method to preserve `$model->company_approved_status` when updating existing contractors (`$id` present). | Prevent profile updates or active/inactive status changes on rejected/pending contractors from silently overwriting `company_approved_status` to Approved (`1`) without limit checks. | **Completed** |
 
+### Session 63: Optimize Remote API Functions in General.php (September 2026)
+
+| Date | File Path | Component | Action / What Changed | Why Changed (Rationale) | Status |
+| :--- | :--- | :--- | :--- | :--- | :--- |
+| 2026-09-17 | [`app/Helpers/General.php`](file:///c:/SFTP/tirbital/Smart%20Support/app/Helpers/General.php) | Helper | Commented out legacy `getIpInfo` & `getIpInfoCountry` `file_get_contents('https://api.tribital.com/ipinfo/...')` and added non-blocking cached implementation with 2-second cURL timeout guard and instant local network IP resolution. | Prevent table rendering latency and 504 timeouts when displaying log/device IP locations in DataTables. | **Completed** |
+| 2026-09-17 | [`app/Helpers/General.php`](file:///c:/SFTP/tirbital/Smart%20Support/app/Helpers/General.php) | Helper | Commented out legacy `sendMailApi` cURL call to `https://api.tribital.com/mailer/send.php` and implemented direct email sending via Laravel SMTP Mailer (`Mail::html`). | Eliminate external HTTP proxy latency and request timeouts when sending system email invites and notifications. | **Completed** |
+
 ---
 
 ### Future Changes (Placeholder for Upcoming Task Sessions)

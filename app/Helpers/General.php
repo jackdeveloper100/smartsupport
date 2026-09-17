@@ -143,6 +143,7 @@ class General
      * @param int $decode Whether to decode the response (1: JSON, 2: location string).
      * @return mixed
      */
+    /* Legacy Implementation (Commented Out):
     public function getIpInfo($ip = '', $decode = 1)
     {
         if ($ip == '') {
@@ -166,13 +167,64 @@ class General
         }
         return $result;
     }
+    */
+    public function getIpInfo($ip = '', $decode = 1)
+    {
+        if ($ip == '') {
+            $ip = $this->getClientIp();
+        }
 
-    /**
-     * Fetches only the country information for a given IP address.
-     *
-     * @param string $ip The IP address to look up. Defaults to the client's IP if empty.
-     * @return string
-     */
+        // Fast local IP check (Instant 0ms response)
+        if (empty($ip) || in_array($ip, ['127.0.0.1', '::1']) || str_starts_with($ip, '192.168.') || str_starts_with($ip, '10.')) {
+            if ($decode == 2) {
+                return 'Local Network';
+            }
+            return (object)['city' => 'Local', 'region' => 'Network', 'country_name' => 'Local'];
+        }
+
+        $key = 'ip_info:' . $ip;
+        $result = \Illuminate\Support\Facades\Cache::get($key);
+
+        if (!$result) {
+            // Fast cURL request with 2-second timeout guard
+            $ch = curl_init('http://ip-api.com/json/' . urlencode($ip));
+            curl_setopt_array($ch, [
+                CURLOPT_RETURNTRANSFER => true,
+                CURLOPT_TIMEOUT => 2,
+                CURLOPT_CONNECTTIMEOUT => 1
+            ]);
+            $response = curl_exec($ch);
+            curl_close($ch);
+
+            if ($response) {
+                $data = @json_decode($response, true);
+                if (!empty($data) && ($data['status'] ?? '') === 'success') {
+                    $formatted = json_encode([
+                        'city' => $data['city'] ?? '',
+                        'region' => $data['regionName'] ?? '',
+                        'country_name' => $data['country'] ?? ''
+                    ]);
+                    \Illuminate\Support\Facades\Cache::put($key, $formatted, 86400);
+                    $result = $formatted;
+                }
+            }
+        }
+
+        if ($result && $decode) {
+            $obj = @json_decode($result);
+            if ($decode == 2) {
+                if (!empty($obj->country_name)) {
+                    $parts = array_filter([$obj->city ?? '', $obj->region ?? '', $obj->country_name ?? '']);
+                    return implode(' , ', $parts);
+                }
+                return '';
+            }
+            return $obj;
+        }
+        return $result;
+    }
+
+    /* Legacy Implementation (Commented Out):
     public function getIpInfoCountry($ip = '')
     {
         if ($ip = '') {
@@ -186,6 +238,18 @@ class General
         $result = @file_get_contents('https://api.tribital.com/ipinfo_country/index.php?ip=' . $ip);
         \Illuminate\Support\Facades\Cache::add($key, $result, 86400);
         return $result;
+    }
+    */
+    public function getIpInfoCountry($ip = '')
+    {
+        if (empty($ip)) {
+            $ip = $this->getClientIp();
+        }
+        $info = $this->getIpInfo($ip, 1);
+        if (is_object($info) && !empty($info->country_name)) {
+            return $info->country_name;
+        }
+        return is_string($info) ? $info : '';
     }
 
     /**
@@ -447,6 +511,7 @@ class General
      * @return array|null The response from the mailer API, decoded from JSON to an associative array,
      *                    or null if the response could not be decoded.
      */
+    /* Legacy Implementation (Commented Out):
     public static function sendMailApi($data)
     {
         // self::sendMailApi([
@@ -481,6 +546,32 @@ class General
         $response = curl_exec($curl);
         curl_close($curl);
         return @json_decode($response, true);
+    }
+    */
+    public static function sendMailApi($data)
+    {
+        try {
+            $to = $data['to'] ?? '';
+            $subject = $data['subject'] ?? '';
+            $body = $data['body'] ?? '';
+            $from = $data['from'] ?? config('setting.mail_from_address');
+            $fromName = $data['from_name'] ?? config('setting.mail_from_name');
+
+            if (empty($to)) {
+                return ['status' => false, 'message' => 'Recipient email address missing'];
+            }
+
+            \Illuminate\Support\Facades\Mail::html($body, function ($message) use ($to, $subject, $from, $fromName) {
+                $message->to($to)
+                        ->subject($subject)
+                        ->from($from, $fromName);
+            });
+
+            return ['status' => true, 'message' => 'Email sent successfully'];
+        } catch (\Exception $e) {
+            \Illuminate\Support\Facades\Log::error('Direct mail send error: ' . $e->getMessage());
+            return ['status' => false, 'message' => $e->getMessage()];
+        }
     }
 
     public function verifyEmail($email)
